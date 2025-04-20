@@ -22,7 +22,7 @@ export async function execute(interaction) {
     await interaction.deferReply();
 
     try {
-        console.log(`Requête de musique : ${query}`); // Log de la requête
+        console.log(`Requête de musique : ${query}`);
 
         const song = await distube.play(voiceChannel, query, {
             member: interaction.member,
@@ -30,15 +30,13 @@ export async function execute(interaction) {
             interaction,
         });
 
-        // Création de l'embed
         const embed = new EmbedBuilder()
             .setTitle('🎶 Musique en cours de lecture !')
             .setDescription(`La musique est maintenant en cours de lecture.`)
-            .setFields(query)
-            .setColor('#0099ff') // Couleur de l'embed
-            .setTimestamp(); // Ajoute un timestamp
+            .addFields({ name: 'Lien', value: query })
+            .setColor('#0099ff')
 
-        await interaction.followUp({ embeds: [embed] }); // Envoie l'embed
+        await interaction.followUp({ embeds: [embed] });
     } catch (error) {
         console.error(error);
         interaction.reply({ content: '❌ Une erreur est survenue en essayant de jouer cette musique.', flags: 64 });
