@@ -3,7 +3,7 @@ import { commandModules } from '../index.js';
 
 export const data = new SlashCommandBuilder()
     .setName('help')
-    .setDescription('Envoie les commandes du bot.');
+    .setDescription('Envoie les commandes du bot');
 
 export async function execute(interaction) {
     const userPermissions = interaction.member.permissions;

@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('addrole')
-    .setDescription('Ajoute un rôle à un utilisateur.')
+    .setDescription('Ajoute un rôle à un utilisateur')
     .setDefaultMemberPermissions('268435456')
     .addUserOption(option =>
         option.setName('utilisateur')

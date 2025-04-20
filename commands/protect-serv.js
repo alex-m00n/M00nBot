@@ -2,7 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ActionRowBuilder, But
 
 export const data = new SlashCommandBuilder()
     .setName('protect-serv')
-    .setDescription('Setup le système de protection du serveur.')
+    .setDescription('Setup le système de protection du serveur')
     .setDefaultMemberPermissions('8');
 
 export async function execute(interaction) {

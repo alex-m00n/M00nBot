@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('removerole')
-    .setDescription('Enlève un rôle à un utilisateur.')
+    .setDescription('Enlève un rôle à un utilisateur')
     .setDefaultMemberPermissions('268435456')
     .addUserOption(option =>
         option.setName('utilisateur')

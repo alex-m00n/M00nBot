@@ -2,7 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ActionRowBuilder, But
 
 export const data = new SlashCommandBuilder()
     .setName('setup-tickets')
-    .setDescription('Setup le système de tickets.')
+    .setDescription('Setup le système de tickets')
     .setDefaultMemberPermissions('8');
 
 export async function execute(interaction) {

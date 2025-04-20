@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('move')
-    .setDescription('Déplace un utilisateur dans un salon vocal.')
+    .setDescription('Déplace un utilisateur dans un salon vocal')
     .setDefaultMemberPermissions('2')
     .addUserOption(option =>
         option.setName('utilisateur')

@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('warn')
-    .setDescription('Warn un utilisateur.')
+    .setDescription('Warn un utilisateur')
     .addUserOption(option =>
         option.setName('utilisateur')
             .setDescription('L\'utilisateur que tu veux warn')

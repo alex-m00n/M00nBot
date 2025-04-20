@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('suggest')
-    .setDescription('Faire une suggestion.')
+    .setDescription('Faire une suggestion')
     .addStringOption(option =>
         option.setName('suggestion')
             .setDescription('La suggestion')

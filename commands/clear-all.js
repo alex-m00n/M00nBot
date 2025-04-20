@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('clear-all')
-    .setDescription('Supprime tous les messages du salon.')
+    .setDescription('Supprime tous les messages du salon')
     .setDefaultMemberPermissions('8192');
 
 export async function execute(interaction) {

@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('bug-report')
-    .setDescription('Report un bug.')
+    .setDescription('Report un bug')
     .addStringOption(option =>
         option.setName('bug')
             .setDescription('Le bug')
