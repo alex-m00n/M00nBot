@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('clear')
-    .setDescription('Supprimer des messages.')
+    .setDescription('Supprime des messages.')
     .setDefaultMemberPermissions('8192')
     .addNumberOption(option =>
         option.setName('nombre')
