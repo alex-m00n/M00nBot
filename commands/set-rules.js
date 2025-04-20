@@ -2,7 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('set-rules')
-    .setDescription('Setup les règles du serveur.')
+    .setDescription('Setup les règles du serveur')
     .setDefaultMemberPermissions('8');
 
 export async function execute(interaction) {

@@ -2,7 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('rules')
-    .setDescription('Affiche les règles du serveur.');
+    .setDescription('Affiche les règles du serveur');
 
 export async function execute(interaction) {
     const embed = new EmbedBuilder()
