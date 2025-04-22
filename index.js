@@ -55,8 +55,20 @@ const commandModules = {};
     }
 })();
 
-client.once('ready', () => {
+client.once('ready', async () => {
     console.log(`✅ Connecté en tant que ${client.user.tag}`);
+
+    const guild = client.guilds.cache.get(GUILD_ID);
+    await guild.members.fetch();
+
+    const nmbbot = guild.members.cache.filter(member => member.user.bot).size;
+    const nmbhu = guild.members.cache.filter(member => !member.user.bot).size;
+    const total = guild.memberCount;
+
+    client.channels.cache.get("1321963617117012048").setName("🗣️Total membres: " + total + "🤖");
+    client.channels.cache.get("1321963655201292340").setName("🗣️ Membres: " + nmbhu + " 🗣️");
+    client.channels.cache.get("1321963676013690880").setName("🤖 Bot: " + nmbbot + " 🤖");
+
 
     let status = [
         {
@@ -107,23 +119,54 @@ client.once('ready', () => {
         },
     ];
 
-    const nmbbot = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => member.user.bot).size;
-    const nmbhu = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => !member.user.bot).size;
-    const total = client.guilds.cache.get(GUILD_ID).memberCount;
-
-    client.channels.cache.get("1321963617117012048").setName("🗣️Total membres: " + total + "🤖")
-    client.channels.cache.get("1321963655201292340").setName("🗣️ Membres: " + nmbhu + " 🗣️")
-    client.channels.cache.get("1321963676013690880").setName("🤖 Bot: " + nmbbot + " 🤖")
 
     setInterval(() => {
+        try {
+            const nmbbot = guild.members.cache.filter(member => member.user.bot).size;
+            const nmbhu = guild.members.cache.filter(member => !member.user.bot).size;
+            const total = guild.memberCount;
 
-        const nmbbot = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => member.user.bot).size;
-        const nmbhu = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => !member.user.bot).size;
-        const total = client.guilds.cache.get(GUILD_ID).memberCount;
+            const totalChannel = client.channels.cache.get("1321963617117012048");
+            console.log("Tentative de mise à jour du salon de tous les membres (robot+membres)...");
+            if (totalChannel) {
+                console.log("Salon de tous les membres (robot+membres) trouvé : " + totalChannel.name);
+                console.log("Nombre de tous les membres (robot+membres) : " + total);
+                totalChannel.setName("🗣️Total membres: " + total + "🤖")
+                    .then(() => console.log("Salon de tous les membres (robot+membres) mis à jour avec succès."))
+                    .catch(error => console.error("Erreur lors de la mise à jour du salon de tous les membres (robot+membres) :", error));
+            } else {
+                console.error("Salon de tous les membres (robot+membres) non trouvé.");
+            }
 
-        client.channels.cache.get("1321963617117012048").setName("🗣️Total membres: " + total + "🤖")
-        client.channels.cache.get("1321963655201292340").setName("🗣️Membres: " + nmbhu + "🗣️")
-        client.channels.cache.get("1321963676013690880").setName("🤖Bot: " + nmbbot + "🤖")
+            const membersChannel = client.channels.cache.get("1321963655201292340");
+            console.log("Tentative de mise à jour du salon des membres...");
+            if (membersChannel) {
+                console.log("Salon des membres trouvé : " + membersChannel.name);
+                console.log("Nombre de membres humains : " + nmbhu);
+                membersChannel.setName("🗣️Membres: " + nmbhu + "🗣️")
+                    .then(() => console.log("Salon des membres mis à jour avec succès."))
+                    .catch(error => console.error("Erreur lors de la mise à jour du salon des membres :", error));
+            } else {
+                console.error("Salon des membres non trouvé.");
+            }
+
+            const botChannel = client.channels.cache.get("1321963676013690880");
+            console.log("Tentative de mise à jour du salon des bots...");
+            if (botChannel) {
+                console.log("Salon des bots trouvé : " + botChannel.name);
+                console.log("Nombre de bots : " + nmbbot);
+                botChannel.setName("🤖Bot: " + nmbbot + "🤖")
+                    .then(() => console.log("Salon des bots mis à jour avec succès."))
+                    .catch(error => console.error("Erreur lors de la mise à jour du salon des bots :", error));
+            } else {
+                console.error("Salon des bots non trouvé.");
+            }
+
+            console.log("Statistiques mises à jour : Total membres: " + total + ", Membres: " + nmbhu + ", Bots: " + nmbbot);
+        } catch (error) {
+            console.error("Erreur lors de la mise à jour des salons statistiques :", error);
+        }
+
 
         let random = Math.floor(Math.random() * status.length);
         client.user.setActivity(status[random]);
@@ -134,7 +177,7 @@ client.once('ready', () => {
 client.distube = new DisTube(client, {
     plugins: [new YtDlpPlugin()],
     emitNewSongOnly: true,
-  });
+});
 
 
 client.on("guildMemberAdd", (member) => {
@@ -181,7 +224,7 @@ client.on('interactionCreate', async (interaction) => {
         }
         console.log('/' + command + ' a été utilisé !')
     }
-    
+
     else if (interaction.isUserContextMenuCommand()) {
         const command = interaction.commandName;
         if (commandModules[command]) {
@@ -189,7 +232,7 @@ client.on('interactionCreate', async (interaction) => {
         }
         console.log('ContextMenuCommand ' + command + ' a été utilisé !')
     }
-    
+
     else if (interaction.isButton()) {
         if (interaction.customId === "verifie") {
             const embedBienvenue = new EmbedBuilder()
