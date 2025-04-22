@@ -108,7 +108,7 @@ client.once('ready', () => {
     ];
 
     const nmbbot = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => member.user.bot).size;
-    const nmbhu = client.guilds.cache.get(GUILD_ID).memberCount - nmbbot;
+    const nmbhu = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => !member.user.bot).size;
     const total = client.guilds.cache.get(GUILD_ID).memberCount;
 
     client.channels.cache.get("1321963617117012048").setName("🗣️Total membres: " + total + "🤖")
@@ -118,7 +118,7 @@ client.once('ready', () => {
     setInterval(() => {
 
         const nmbbot = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => member.user.bot).size;
-        const nmbhu = client.guilds.cache.get(GUILD_ID).memberCount - nmbbot;
+        const nmbhu = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => !member.user.bot).size;
         const total = client.guilds.cache.get(GUILD_ID).memberCount;
 
         client.channels.cache.get("1321963617117012048").setName("🗣️Total membres: " + total + "🤖")
@@ -138,6 +138,15 @@ client.distube = new DisTube(client, {
 
 
 client.on("guildMemberAdd", (member) => {
+
+    const nmbbot = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => member.user.bot).size;
+    const nmbhu = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => !member.user.bot).size;
+    const total = client.guilds.cache.get(GUILD_ID).memberCount;
+
+    client.channels.cache.get("1321963617117012048").setName("🗣️Total membres: " + total + "🤖")
+    client.channels.cache.get("1321963655201292340").setName("🗣️Membres: " + nmbhu + "🗣️")
+    client.channels.cache.get("1321963676013690880").setName("🤖Bot: " + nmbbot + "🤖")
+
     console.log("✅ Un membre est arrivé")
 
     member.roles.add("1101381543173304371")
@@ -146,6 +155,14 @@ client.on("guildMemberAdd", (member) => {
 client.on("guildMemberRemove", (member) => {
     console.log("❌ Un membre est partit")
 
+    const nmbbot = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => member.user.bot).size;
+    const nmbhu = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => !member.user.bot).size;
+    const total = client.guilds.cache.get(GUILD_ID).memberCount;
+
+    client.channels.cache.get("1321963617117012048").setName("🗣️Total membres: " + total + "🤖")
+    client.channels.cache.get("1321963655201292340").setName("🗣️Membres: " + nmbhu + "🗣️")
+    client.channels.cache.get("1321963676013690880").setName("🤖Bot: " + nmbbot + "🤖")
+
     const embedAurevoir = new EmbedBuilder()
         .setColor("#ff0000")
         .setTitle(`À bientôt sur le serveur __${member.guild.name}__! 🎉`)
@@ -153,7 +170,7 @@ client.on("guildMemberRemove", (member) => {
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setFooter({ text: `Nous sommes maintenant ${member.guild.members.cache.filter(member => !member.user.bot).size} sur le serveur !` });
 
-    client.channels.cache.get(channelbienvenue).send({ embeds: [embedAurevoir] })
+    client.channels.cache.get('1087789238306754751').send({ embeds: [embedAurevoir] })
 });
 
 client.on('interactionCreate', async (interaction) => {
