@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 
 import { DisTube } from 'distube';
 import { YtDlpPlugin } from '@distube/yt-dlp';
+import { pause, resume, stop, previous, next } from './commands/play.js';
 
 config();
 
@@ -175,8 +176,8 @@ client.once('ready', async () => {
 });
 
 client.distube = new DisTube(client, {
-    plugins: [new YtDlpPlugin()],
     emitNewSongOnly: true,
+    plugins: [new YtDlpPlugin()]
 });
 
 
@@ -307,7 +308,28 @@ client.on('interactionCreate', async (interaction) => {
                     interaction.reply({ content: 'Une erreur est survenue lors de l\'achivage.', flags: 64 });
                 });
         }
-        console.log('Boutton ' + interaction.customId + ' a été utilisé !')
+
+        else if (interaction.customId === 'pause') {
+            await pause(interaction);
+        }
+
+        else if (interaction.customId === 'resume') {
+            await resume(interaction)
+        }
+        
+        else if (interaction.customId === 'stop') {
+            await stop(interaction);
+        }
+
+        else if (interaction.customId === 'previous') {
+            await previous(interaction);
+        }
+
+        else if (interaction.customId === 'next') {
+            await next(interaction);
+        }
+        
+        console.log('Bouton ' + interaction.customId + ' a été utilisé !')
     }
 });
 
