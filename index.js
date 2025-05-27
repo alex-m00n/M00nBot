@@ -139,9 +139,9 @@ client.once('ready', async () => {
             const botChannel = client.channels.cache.get("1321963676013690880");
 
             if (membersChannel) {
-                totalChannel.setName(`🗣️Membres: ${total}🗣️`)
+                membersChannel.setName(`🗣️Membres: ${nmbhu}🗣️`)
                     .then(() => console.log("✅ Salon membres mis à jour"))
-                    .catch(error => console.error("❌ Erreur salon membes:", error));
+                    .catch(error => console.error("❌ Erreur salon membres:", error));
             }
             if (totalChannel) {
                 totalChannel.setName(`🗣️Total membres: ${total}🤖`)
@@ -172,7 +172,7 @@ client.distube = new DisTube(client, {
             update: true,
             cookies: {
                 youtube: {
-                    raw: process.env.YOUTUBE_COOKIES
+                    file: './cookies.txt'
                 }
             }
         })
