@@ -7,7 +7,7 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
     try {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
 
         const userPermissions = interaction.member.permissions;
         const availableCommands = [];
