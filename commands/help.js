@@ -22,6 +22,14 @@ export async function execute(interaction) {
         .setTitle('Commandes Disponibles')
         .setDescription(availableCommands.length > 0 ? availableCommands.join('\n\n') : 'Aucune commande disponible.')
         .setColor('#0099ff');
-
-    await interaction.reply({ embeds: [embed], flags: 64 });
+    try {
+        await interaction.editReply({ embeds: [embed], ephemeral: true });
+    } catch (error) {
+        console.error('Erreur dans la commande help:', error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ content: '❌ Une erreur est survenue lors de l\'exécution de la commande.', ephemeral: true });
+        } else {
+            await interaction.editReply({ content: '❌ Une erreur est survenue lors de l\'exécution de la commande.', ephemeral: true });
+        }
+    }
 }
