@@ -1,4 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { getVoiceConnection } from '@discordjs/voice';
 
 export const data = new SlashCommandBuilder()
     .setName('play')
@@ -33,30 +34,54 @@ export async function execute(interaction) {
                 interaction,
             });
 
-            // Récupérer la liste de lecture actuelle
             const playlist = queue.songs.map((song, index) => `${index + 1}. ${song.name} - ${song.formattedDuration}`).join('\n');
 
-            // Créer un embed pour la liste de lecture
             const playlistEmbed = new EmbedBuilder()
                 .setTitle('🎶 Liste de lecture actuelle')
                 .setDescription(playlist)
                 .setColor('#0099ff');
 
-            return interaction.followUp({ content: `🎶 La musique a été ajoutée à la liste de lecture : ${query}`, embeds: [playlistEmbed], flags: 64 });
+            await interaction.followUp({ content: `🎶 La musique a été ajoutée à la liste de lecture : ${query}`, embeds: [playlistEmbed], flags: 64 });
+
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('previous')
+                        .setEmoji('⏮')
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(!queue || queue.previousSongs.length === 0),
+                    new ButtonBuilder()
+                        .setCustomId('pause')
+                        .setEmoji('⏸')
+                        .setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder()
+                        .setCustomId('resume')
+                        .setEmoji('▶')
+                        .setDisabled(true)
+                        .setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder()
+                        .setCustomId('stop')
+                        .setEmoji('⏹')
+                        .setStyle(ButtonStyle.Danger),
+                    new ButtonBuilder()
+                        .setCustomId('next')
+                        .setEmoji('⏭')
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(!queue || queue.songs.length <= 1)
+                );
+
+            await interaction.followUp({ embeds: [playlistEmbed], components: [row] });
         }
 
-        // Si aucune musique n'est en cours, démarrez la lecture
         await distube.play(voiceChannel, query, {
             member: interaction.member,
             textChannel: interaction.channel,
             interaction,
         });
 
-        // Récupérer la file d'attente mise à jour
         const updatedQueue = distube.getQueue(voiceChannel);
         const currentSong = updatedQueue.songs[0];
 
-        // Vérifiez si l'objet currentSong est défini
         if (!currentSong) {
             return interaction.followUp({ content: '❌ Impossible de récupérer les informations de la musique.', flags: 64 });
         }
@@ -78,7 +103,8 @@ export async function execute(interaction) {
                 new ButtonBuilder()
                     .setCustomId('previous')
                     .setEmoji('⏮')
-                    .setStyle(ButtonStyle.Secondary),
+                    .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(!queue || queue.previousSongs.length === 0),
                 new ButtonBuilder()
                     .setCustomId('pause')
                     .setEmoji('⏸')
@@ -86,6 +112,7 @@ export async function execute(interaction) {
                 new ButtonBuilder()
                     .setCustomId('resume')
                     .setEmoji('▶')
+                    .setDisabled(true)
                     .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder()
                     .setCustomId('stop')
@@ -95,6 +122,7 @@ export async function execute(interaction) {
                     .setCustomId('next')
                     .setEmoji('⏭')
                     .setStyle(ButtonStyle.Secondary)
+                    .setDisabled(!queue || queue.songs.length <= 1)
             );
 
         await interaction.followUp({ embeds: [embed], components: [row] });
@@ -118,6 +146,10 @@ export async function pause(interaction) {
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
+                .setCustomId('previous')
+                .setEmoji('⏮')
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
                 .setCustomId('pause')
                 .setEmoji('⏸')
                 .setStyle(ButtonStyle.Primary)
@@ -129,7 +161,11 @@ export async function pause(interaction) {
             new ButtonBuilder()
                 .setCustomId('stop')
                 .setEmoji('⏹')
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('next')
+                .setEmoji('⏭')
+                .setStyle(ButtonStyle.Secondary)
         );
 
     await interaction.update({ components: [row] });
@@ -150,6 +186,10 @@ export async function resume(interaction) {
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
+                .setCustomId('previous')
+                .setEmoji('⏮')
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
                 .setCustomId('pause')
                 .setEmoji('⏸')
                 .setStyle(ButtonStyle.Primary),
@@ -161,7 +201,11 @@ export async function resume(interaction) {
             new ButtonBuilder()
                 .setCustomId('stop')
                 .setEmoji('⏹')
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('next')
+                .setEmoji('⏭')
+                .setStyle(ButtonStyle.Secondary)
         );
 
     await interaction.update({ components: [row] });
@@ -177,14 +221,25 @@ export async function stop(interaction) {
         return interaction.reply({ content: '❌ Il n\'y a pas de musique en cours de lecture.', flags: 64 });
     }
 
-    distube.stop(interaction);
-
     const voiceChannel = interaction.member.voice.channel;
-    if (voiceChannel) {
-        voiceChannel.leave();
+
+    if (!voiceChannel) {
+        return interaction.reply({ content: '❌ Vous devez être dans un salon vocal pour arrêter la musique.', flags: 64 });
     }
 
-    interaction.reply({ content: '⏹️ La musique a été arrêtée et le bot a quitté le canal vocal.', flags: 64 });
+    try {
+        distube.stop(interaction);
+
+        const member = interaction.guild.members.cache.get(client.user.id);
+        if (member && member.voice) {
+            await member.voice.disconnect();
+        }
+
+        return interaction.reply({ content: '⏹️ La musique a été arrêtée et le bot a quitté le canal vocal.', flags: 64 });
+    } catch (error) {
+        console.error('Erreur lors de l\'arrêt de la musique:', error);
+        return interaction.reply({ content: '❌ Une erreur est survenue lors de l\'arrêt de la musique.', flags: 64 });
+    }
 }
 
 export async function previous(interaction) {

@@ -35,15 +35,17 @@ const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('
 const commandModules = {};
 
 (async () => {
-    for (const file of commandFiles) {
-        const command = await import(`file://${path.join(commandsPath, file)}`);
-        commands.push(command.data.toJSON());
-        commandModules[command.data.name] = command;
-    }
-
-    const rest = new REST({ version: '10' }).setToken(TOKEN);
-
     try {
+        for (const file of commandFiles) {
+            const filePath = path.join(commandsPath, file);
+            const command = await import(`file://${filePath}`);
+            if (command.data && command.data.toJSON) {
+                commands.push(command.data.toJSON());
+                commandModules[command.data.name] = command;
+            }
+        }
+
+        const rest = new REST({ version: '10' }).setToken(TOKEN);
         console.log('🔄 Enregistrement des slash commands...');
         await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
         console.log('✅ Slash commands enregistrées avec succès.');
@@ -66,9 +68,9 @@ client.once('ready', async () => {
     const nmbhu = guild.members.cache.filter(member => !member.user.bot).size;
     const total = guild.memberCount;
 
-    client.channels.cache.get("1321963617117012048").setName("🗣️Total membres: " + total + "🤖");
-    client.channels.cache.get("1321963655201292340").setName("🗣️ Membres: " + nmbhu + " 🗣️");
-    client.channels.cache.get("1321963676013690880").setName("🤖 Bot: " + nmbbot + " 🤖");
+    client.channels.cache.get("1321963617117012048").setName(`🗣️Total membres: ${total}🤖`);
+    client.channels.cache.get("1321963655201292340").setName(`🗣️Membres: ${nmbhu}🗣️`);
+    client.channels.cache.get("1321963676013690880").setName(`🤖Bot: ${nmbbot}🤖`);
 
 
     let status = [
@@ -127,47 +129,35 @@ client.once('ready', async () => {
             const nmbhu = guild.members.cache.filter(member => !member.user.bot).size;
             const total = guild.memberCount;
 
+            console.log("=== DÉBUT MISE À JOUR DES SALONS ===");
+            console.log("Nombre de membres humains:", nmbhu);
+            console.log("Nombre de bots:", nmbbot);
+            console.log("Total:", total);
+
             const totalChannel = client.channels.cache.get("1321963617117012048");
-            console.log("Tentative de mise à jour du salon de tous les membres (robot+membres)...");
-            if (totalChannel) {
-                console.log("Salon de tous les membres (robot+membres) trouvé : " + totalChannel.name);
-                console.log("Nombre de tous les membres (robot+membres) : " + total);
-                totalChannel.setName("🗣️Total membres: " + total + "🤖")
-                    .then(() => console.log("Salon de tous les membres (robot+membres) mis à jour avec succès."))
-                    .catch(error => console.error("Erreur lors de la mise à jour du salon de tous les membres (robot+membres) :", error));
-            } else {
-                console.error("Salon de tous les membres (robot+membres) non trouvé.");
-            }
-
             const membersChannel = client.channels.cache.get("1321963655201292340");
-            console.log("Tentative de mise à jour du salon des membres...");
-            if (membersChannel) {
-                console.log("Salon des membres trouvé : " + membersChannel.name);
-                console.log("Nombre de membres humains : " + nmbhu);
-                membersChannel.setName("🗣️Membres: " + nmbhu + "🗣️")
-                    .then(() => console.log("Salon des membres mis à jour avec succès."))
-                    .catch(error => console.error("Erreur lors de la mise à jour du salon des membres :", error));
-            } else {
-                console.error("Salon des membres non trouvé.");
-            }
-
             const botChannel = client.channels.cache.get("1321963676013690880");
-            console.log("Tentative de mise à jour du salon des bots...");
+
+            if (membersChannel) {
+                totalChannel.setName(`🗣️Membres: ${total}🗣️`)
+                    .then(() => console.log("✅ Salon membres mis à jour"))
+                    .catch(error => console.error("❌ Erreur salon membes:", error));
+            }
+            if (totalChannel) {
+                totalChannel.setName(`🗣️Total membres: ${total}🤖`)
+                    .then(() => console.log("✅ Salon total mis à jour"))
+                    .catch(error => console.error("❌ Erreur salon total:", error));
+            }
             if (botChannel) {
-                console.log("Salon des bots trouvé : " + botChannel.name);
-                console.log("Nombre de bots : " + nmbbot);
-                botChannel.setName("🤖Bot: " + nmbbot + "🤖")
-                    .then(() => console.log("Salon des bots mis à jour avec succès."))
-                    .catch(error => console.error("Erreur lors de la mise à jour du salon des bots :", error));
-            } else {
-                console.error("Salon des bots non trouvé.");
+                botChannel.setName(`🤖Bot: ${nmbbot}🤖`)
+                    .then(() => console.log("✅ Salon bots mis à jour"))
+                    .catch(error => console.error("❌ Erreur salon bots:", error));
             }
 
-            console.log("Statistiques mises à jour : Total membres: " + total + ", Membres: " + nmbhu + ", Bots: " + nmbbot);
+            console.log("=== FIN MISE À JOUR DES SALONS ===");
         } catch (error) {
-            console.error("Erreur lors de la mise à jour des salons statistiques :", error);
+            console.error("❌ ERREUR CRITIQUE lors de la mise à jour des salons:", error);
         }
-
 
         let random = Math.floor(Math.random() * status.length);
         client.user.setActivity(status[random]);
@@ -182,14 +172,13 @@ client.distube = new DisTube(client, {
 
 
 client.on("guildMemberAdd", (member) => {
-
     const nmbbot = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => member.user.bot).size;
     const nmbhu = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => !member.user.bot).size;
     const total = client.guilds.cache.get(GUILD_ID).memberCount;
 
-    client.channels.cache.get("1321963617117012048").setName("🗣️Total membres: " + total + "🤖")
-    client.channels.cache.get("1321963655201292340").setName("🗣️Membres: " + nmbhu + "🗣️")
-    client.channels.cache.get("1321963676013690880").setName("🤖Bot: " + nmbbot + "🤖")
+    client.channels.cache.get("1321963617117012048").setName(`🗣️Total membres: ${total}🤖`);
+    client.channels.cache.get("1321963655201292340").setName(`🗣️Membres: ${nmbhu}🗣️`);
+    client.channels.cache.get("1321963676013690880").setName(`🤖Bot: ${nmbbot}🤖`);
 
     console.log("✅ Un membre est arrivé")
 
@@ -203,9 +192,9 @@ client.on("guildMemberRemove", (member) => {
     const nmbhu = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => !member.user.bot).size;
     const total = client.guilds.cache.get(GUILD_ID).memberCount;
 
-    client.channels.cache.get("1321963617117012048").setName("🗣️Total membres: " + total + "🤖")
-    client.channels.cache.get("1321963655201292340").setName("🗣️Membres: " + nmbhu + "🗣️")
-    client.channels.cache.get("1321963676013690880").setName("🤖Bot: " + nmbbot + "🤖")
+    client.channels.cache.get("1321963617117012048").setName(`🗣️Total membres: ${total}🤖`);
+    client.channels.cache.get("1321963655201292340").setName(`🗣️Membres: ${nmbhu}🗣️`);
+    client.channels.cache.get("1321963676013690880").setName(`🤖Bot: ${nmbbot}🤖`);
 
     const embedAurevoir = new EmbedBuilder()
         .setColor("#ff0000")
