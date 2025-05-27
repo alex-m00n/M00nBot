@@ -280,7 +280,7 @@ client.on('interactionCreate', async (interaction) => {
 
             const embed = new EmbedBuilder()
                 .setAuthor({
-                    name: "MØØN Bot",
+                    name: "M00nBot",
                     url: "https://m00n-bot.vercel.app",
                     iconURL: interaction.client.user.avatarURL(),
                 })
