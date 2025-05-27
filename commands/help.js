@@ -30,7 +30,7 @@ export async function execute(interaction) {
     } catch (error) {
         console.error('Erreur dans la commande help:', error);
         if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ content: '❌ Une erreur est survenue lors de l\'exécution de la commande.', ephemeral: true });
+            await interaction.reply({ content: '❌ Une erreur est survenue lors de l\'exécution de la commande.', flags: 64 });
         } else {
             await interaction.editReply({ content: '❌ Une erreur est survenue lors de l\'exécution de la commande.' });
         }

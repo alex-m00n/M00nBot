@@ -6,7 +6,7 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
     const startTime = Date.now();
-    await interaction.reply('Calcul de la latence...');
+    await interaction.reply({content :'Calcul de la latence...', flags: 64 });
     const endTime = Date.now();
     const botLatency = endTime - startTime;
     const apiLatency = Math.round(interaction.client.ws.ping);

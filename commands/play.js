@@ -144,7 +144,7 @@ export async function pause(interaction) {
         const queue = distube.getQueue(interaction);
 
         if (!queue) {
-            await interaction.reply({ content: '❌ Il n\'y a pas de musique en cours de lecture.', ephemeral: true });
+            await interaction.reply({ content: '❌ Il n\'y a pas de musique en cours de lecture.', flags: 64 });
             return;
         }
 
