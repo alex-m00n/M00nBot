@@ -71,6 +71,7 @@ export async function execute(interaction) {
                 );
 
             await interaction.followUp({ embeds: [playlistEmbed], components: [row] });
+            return;
         }
 
         await distube.play(voiceChannel, query, {
@@ -127,8 +128,12 @@ export async function execute(interaction) {
 
         await interaction.followUp({ embeds: [embed], components: [row] });
     } catch (error) {
-        console.error(error);
-        interaction.reply({ content: '❌ Une erreur est survenue en essayant de jouer cette musique.', flags: 64 });
+        console.error('Erreur lors de la lecture de la musique:', error);
+        if (error.message.includes('Sign in to confirm you\'re not a bot')) {
+            await interaction.followUp({ content: '❌ Erreur d\'authentification YouTube. Veuillez réessayer dans quelques instants.', flags: 64 });
+        } else {
+            await interaction.followUp({ content: '❌ Une erreur est survenue en essayant de jouer cette musique.', flags: 64 });
+        }
     }
 }
 
