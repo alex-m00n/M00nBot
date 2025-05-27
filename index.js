@@ -167,7 +167,16 @@ client.once('ready', async () => {
 
 client.distube = new DisTube(client, {
     emitNewSongOnly: true,
-    plugins: [new YtDlpPlugin()]
+    plugins: [
+        new YtDlpPlugin({
+            update: true,
+            cookies: {
+                youtube: {
+                    raw: process.env.YOUTUBE_COOKIES
+                }
+            }
+        })
+    ]
 });
 
 
