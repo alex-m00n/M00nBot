@@ -172,7 +172,7 @@ client.distube = new DisTube(client, {
             update: true,
             cookies: {
                 youtube: {
-                    file: './cookies.txt'
+                    browser: 'chrome'
                 }
             },
             ytDlpOptions: {
