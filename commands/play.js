@@ -1,4 +1,4 @@
-import { EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Client } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
     .setName('play')
@@ -128,10 +128,26 @@ export async function execute(interaction) {
         await interaction.followUp({ embeds: [embed], components: [row] });
     } catch (error) {
         console.error('Erreur lors de la lecture de la musique:', error);
+        
+        // Déconnexion du bot en cas d'erreur
+        const voiceChannel = interaction.member.voice.channel;
+        if (voiceChannel) {
+            const member = interaction.guild.members.cache.get(interaction.client.user.id);
+            if (member && member.voice) {
+                await member.voice.disconnect();
+            }
+        }
+
         if (error.message.includes('Sign in to confirm you\'re not a bot')) {
-            await interaction.followUp({ content: '❌ Erreur d\'authentification YouTube. Veuillez réessayer dans quelques instants.', flags: 64 });
+            await interaction.followUp({ content: '❌ Erreur d\'authentification YouTube. Le bot a été déconnecté du canal vocal.', flags: 64 });
+        } else if (error.message.includes('Video unavailable') || error.message.includes('This content isn\'t available')) {
+            await interaction.followUp({ content: '❌ Cette vidéo n\'est pas disponible. Le bot a été déconnecté du canal vocal.', flags: 64 });
+        } else if (error.message.includes('Private video')) {
+            await interaction.followUp({ content: '❌ Cette vidéo est privée et ne peut pas être lue. Le bot a été déconnecté du canal vocal.', flags: 64 });
+        } else if (error.message.includes('Age restricted')) {
+            await interaction.followUp({ content: '❌ Cette vidéo est restreinte par âge et ne peut pas être lue. Le bot a été déconnecté du canal vocal.', flags: 64 });
         } else {
-            await interaction.followUp({ content: '❌ Une erreur est survenue en essayant de jouer cette musique.', flags: 64 });
+            await interaction.followUp({ content: '❌ Une erreur est survenue en essayant de jouer cette musique. Le bot a été déconnecté du canal vocal.', flags: 64 });
         }
     }
 }
