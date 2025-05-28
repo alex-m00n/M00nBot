@@ -1,38 +1,102 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { commandModules } from '../index.js';
+import { SlashCommandBuilder, EmbedBuilder, ContextMenuCommandBuilder } from 'discord.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+// Configuration de la commande
 export const data = new SlashCommandBuilder()
     .setName('help')
-    .setDescription('Envoie les commandes du bot');
+    .setDescription('Affiche la liste des commandes disponibles')
+    .addStringOption(option =>
+        option.setName('categorie')
+            .setDescription('Catégorie de commandes à afficher')
+            .setRequired(false)
+            .addChoices(
+                { name: '🎵 Musique', value: 'musique' },
+                { name: '🛠️ Utilitaires', value: 'utilitaires' },
+                { name: '🛡️ Modération', value: 'moderation' },
+                { name: '👑 Administration', value: 'admin' },
+                { name: '🎲 Fun', value: 'fun' },
+                { name: '📋 Menu contextuel', value: 'context' }
+            )
+    );
 
+// Exécution de la commande
 export async function execute(interaction) {
-    try {
-        await interaction.deferReply({ flags: 64 });
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const commandsPath = path.join(__dirname);
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
-        const userPermissions = interaction.member.permissions;
-        const availableCommands = [];
+    const categories = {
+        fun: ['tic-tac-toe'],
+        musique: ['play'],
+        utilitaires: ['bug-report', 'doc', 'help', 'info', 'info-serv', 'move', 'ping', 'rules', 'suggest'],
+        moderation: ['add-role', 'ban', 'clear', 'clear-all', 'kick', 'remove-role', 'warn'],
+        admin: ['protect-serv', 'set-rules', 'setup-tickets'],
+        context: ['warn-user', 'user-info', 'move-user']
+    };
 
-        for (const commandName in commandModules) {
-            const command = commandModules[commandName];
-            const commandPermissions = command.data.defaultMemberPermissions;
+    const category = interaction.options.getString('categorie');
+    const embed = new EmbedBuilder()
+        .setColor('#0099ff')
+        .setTitle('📚 Liste des commandes')
+        .setDescription('Voici la liste des commandes disponibles :')
+        .setFooter({ text: 'M00nBot - Créé par AlexM00n' });
 
-            if (userPermissions.has(commandPermissions)) {
-                availableCommands.push(`**/${commandName}** - ${command.data.description}`);
+    if (category) {
+        const commands = categories[category];
+        if (commands) {
+            for (const cmd of commands) {
+                try {
+                    const command = await import(`./${cmd}.js`);
+                    if (command.data && command.data.name) {
+                        const isContextMenu = command.data.type === 2;
+                        if (isContextMenu) {
+                            embed.addFields({ 
+                                name: command.data.name,
+                                value: 'Commande du menu contextuel'
+                            });
+                        } else {
+                            embed.addFields({ 
+                                name: `/${command.data.name}`, 
+                                value: command.data.description || 'Pas de description disponible' 
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Erreur lors du chargement de la commande ${cmd}:`, error);
+                }
             }
         }
-
-        const embed = new EmbedBuilder()
-            .setTitle('Commandes Disponibles')
-            .setDescription(availableCommands.length > 0 ? availableCommands.join('\n\n') : 'Aucune commande disponible.')
-            .setColor('#0099ff');
-
-        await interaction.editReply({ embeds: [embed] });
-    } catch (error) {
-        console.error('Erreur dans la commande help:', error);
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ content: '❌ Une erreur est survenue lors de l\'exécution de la commande.', flags: 64 });
-        } else {
-            await interaction.editReply({ content: '❌ Une erreur est survenue lors de l\'exécution de la commande.' });
+    } else {
+        for (const [cat, cmds] of Object.entries(categories)) {
+            const commandPromises = cmds.map(async (cmd) => {
+                try {
+                    const command = await import(`./${cmd}.js`);
+                    if (command.data && command.data.name) {
+                        const isContextMenu = command.data.type === 2;
+                        return isContextMenu ? `\`${command.data.name}\`` : `\`/${command.data.name}\``;
+                    }
+                    return '';
+                } catch (error) {
+                    console.error(`Erreur lors du chargement de la commande ${cmd}:`, error);
+                    return '';
+                }
+            });
+            
+            const commandList = (await Promise.all(commandPromises))
+                .filter(cmd => cmd !== '')
+                .join(', ');
+                
+            if (commandList) {
+                embed.addFields({ 
+                    name: `**${cat.charAt(0).toUpperCase() + cat.slice(1)}**`, 
+                    value: commandList 
+                });
+            }
         }
     }
+
+    await interaction.reply({ embeds: [embed], flags: 64 });
 }

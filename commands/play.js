@@ -1,5 +1,4 @@
 import { EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getVoiceConnection } from '@discordjs/voice';
 
 export const data = new SlashCommandBuilder()
     .setName('play')
@@ -176,11 +175,11 @@ export async function pause(interaction) {
             );
 
         await interaction.update({ components: [row] });
-        await interaction.followUp({ content: '⏸️ La musique a été mise en pause.', ephemeral: true });
+        await interaction.followUp({ content: '⏸️ La musique a été mise en pause.', flags : 64 });
     } catch (error) {
         console.error('Erreur dans la commande pause:', error);
         if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ content: '❌ Une erreur est survenue.', ephemeral: true });
+            await interaction.reply({ content: '❌ Une erreur est survenue.', flags : 64 });
         }
     }
 }
@@ -192,7 +191,7 @@ export async function resume(interaction) {
         const queue = distube.getQueue(interaction);
 
         if (!queue) {
-            await interaction.reply({ content: '❌ Il n\'y a pas de musique en pause.', ephemeral: true });
+            await interaction.reply({ content: '❌ Il n\'y a pas de musique en pause.', flags : 64 });
             return;
         }
 
@@ -224,11 +223,11 @@ export async function resume(interaction) {
             );
 
         await interaction.update({ components: [row] });
-        await interaction.followUp({ content: '▶️ La musique a repris.', ephemeral: true });
+        await interaction.followUp({ content: '▶️ La musique a repris.', flags : 64 });
     } catch (error) {
         console.error('Erreur dans la commande resume:', error);
         if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ content: '❌ Une erreur est survenue.', ephemeral: true });
+            await interaction.reply({ content: '❌ Une erreur est survenue.', flags : 64 });
         }
     }
 }
@@ -240,14 +239,14 @@ export async function stop(interaction) {
         const queue = distube.getQueue(interaction);
 
         if (!queue) {
-            await interaction.reply({ content: '❌ Il n\'y a pas de musique en cours de lecture.', ephemeral: true });
+            await interaction.reply({ content: '❌ Il n\'y a pas de musique en cours de lecture.', flags : 64 });
             return;
         }
 
         const voiceChannel = interaction.member.voice.channel;
 
         if (!voiceChannel) {
-            await interaction.reply({ content: '❌ Vous devez être dans un salon vocal pour arrêter la musique.', ephemeral: true });
+            await interaction.reply({ content: '❌ Vous devez être dans un salon vocal pour arrêter la musique.', flags : 64 });
             return;
         }
 
@@ -258,11 +257,11 @@ export async function stop(interaction) {
             await member.voice.disconnect();
         }
 
-        await interaction.reply({ content: '⏹️ La musique a été arrêtée et le bot a quitté le canal vocal.', ephemeral: true });
+        await interaction.reply({ content: '⏹️ La musique a été arrêtée et le bot a quitté le canal vocal.', flags : 64 });
     } catch (error) {
         console.error('Erreur dans la commande stop:', error);
         if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ content: '❌ Une erreur est survenue.', ephemeral: true });
+            await interaction.reply({ content: '❌ Une erreur est survenue.', flags : 64 });
         }
     }
 }
@@ -274,16 +273,16 @@ export async function previous(interaction) {
         const queue = distube.getQueue(interaction);
 
         if (!queue || queue.previousSongs.length === 0) {
-            await interaction.reply({ content: '❌ Il n\'y a pas de piste précédente.', ephemeral: true });
+            await interaction.reply({ content: '❌ Il n\'y a pas de piste précédente.', flags : 64 });
             return;
         }
 
         distube.previous(interaction);
-        await interaction.reply({ content: '⏮️ Piste précédente.', ephemeral: true });
+        await interaction.reply({ content: '⏮️ Piste précédente.', flags : 64 });
     } catch (error) {
         console.error('Erreur dans la commande previous:', error);
         if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ content: '❌ Une erreur est survenue.', ephemeral: true });
+            await interaction.reply({ content: '❌ Une erreur est survenue.', flags : 64 });
         }
     }
 }
@@ -295,16 +294,16 @@ export async function next(interaction) {
         const queue = distube.getQueue(interaction);
 
         if (!queue || queue.songs.length <= 1) {
-            await interaction.reply({ content: '❌ Il n\'y a pas de piste suivante.', ephemeral: true });
+            await interaction.reply({ content: '❌ Il n\'y a pas de piste suivante.', flags : 64 });
             return;
         }
 
         distube.skip(interaction);
-        await interaction.reply({ content: '⏭️ Piste suivante.', ephemeral: true });
+        await interaction.reply({ content: '⏭️ Piste suivante.', flags : 64 });
     } catch (error) {
         console.error('Erreur dans la commande next:', error);
         if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ content: '❌ Une erreur est survenue.', ephemeral: true });
+            await interaction.reply({ content: '❌ Une erreur est survenue.', flags : 64 });
         }
     }
 }

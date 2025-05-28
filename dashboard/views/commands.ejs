@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commandes | M00nBot🌙🤖</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+
+        <!-- Main Content -->
+        <div class="flex-1">
+            <!-- Commands Content -->
+            <main class="p-8">
+                <div class="mb-6 flex justify-between items-center">
+                    <h3 class="text-2xl font-bold">Liste des Commandes</h3>
+                    <button class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center" onclick="showAddCommandModal()">
+                        <i class="fas fa-plus mr-2"></i> Nouvelle Commande
+                    </button>
+                </div>
+
+                <!-- Filtres de catégories -->
+                <div class="mb-6 flex flex-wrap gap-2" id="categoryFilters">
+                    <!-- Les filtres de catégories seront ajoutés ici -->
+                </div>
+
+                <div id="commandsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Les commandes seront chargées ici -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal pour les détails de commande -->
+    <div id="commandModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 max-w-lg w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold" id="commandName"></h3>
+                <button onclick="closeCommandModal()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="commandDetails" class="space-y-4">
+                <!-- Les détails de la commande seront chargés ici -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour ajouter/modifier une commande -->
+    <div id="commandFormModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 overflow-y-auto">
+        <div class="min-h-screen w-full flex items-center justify-center p-4">
+            <div class="bg-gray-800 rounded-lg w-full max-w-lg relative my-8">
+                <!-- En-tête fixe -->
+                <div class="sticky top-0 bg-gray-800 px-6 py-4 border-b border-gray-700 rounded-t-lg z-10">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-semibold" id="formTitle">Nouvelle Commande</h3>
+                        <button onclick="closeCommandFormModal()" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Contenu scrollable -->
+                <div class="px-6 py-4 overflow-y-auto" style="max-height: 70vh;">
+                    <form id="commandForm" class="space-y-4">
+                        <input type="hidden" id="commandId">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Nom</label>
+                            <input type="text" id="commandNameInput" class="bg-gray-700 text-white px-4 py-2 rounded w-full" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Description</label>
+                            <textarea id="commandDescription" class="bg-gray-700 text-white px-4 py-2 rounded w-full h-24" required></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Catégorie</label>
+                            <select id="commandCategory" class="bg-gray-700 text-white px-4 py-2 rounded w-full">
+                                <% Object.entries(commandCategories).forEach(([key, cat]) => { %>
+                                    <option value="<%= key %>"><%= cat.name %></option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Permissions</label>
+                            <select id="commandPermissions" class="bg-gray-700 text-white px-4 py-2 rounded w-full">
+                                <option value="0">Tout le monde</option>
+                                <option value="8">Administrateur</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Utilisable en DM</label>
+                            <input type="checkbox" id="commandDmPermission" class="form-checkbox h-5 w-5 text-purple-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Code de la commande</label>
+                            <textarea id="commandCode" class="bg-gray-700 text-white px-4 py-2 rounded w-full h-48 font-mono text-sm" placeholder="// Code de la commande ici&#10;module.exports = {&#10;    name: 'nom-de-la-commande',&#10;    description: 'Description de la commande',&#10;    async execute(interaction) {&#10;        // Votre code ici&#10;    }&#10;};"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Options de la commande</label>
+                            <div id="commandOptions" class="space-y-2 max-h-60 overflow-y-auto">
+                                <!-- Les options seront ajoutées ici -->
+                            </div>
+                            <button type="button" onclick="addCommandOption()" class="mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                <i class="fas fa-plus mr-1"></i> Ajouter une option
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Pied de page fixe -->
+                <div class="sticky bottom-0 bg-gray-800 px-6 py-4 border-t border-gray-700 rounded-b-lg">
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" onclick="closeCommandFormModal()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                            Annuler
+                        </button>
+                        <button type="submit" form="commandForm" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                            Enregistrer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allCommands = [];
+        let commandCategories = {};
+        let selectedCategory = 'ALL';
+
+        // Charger la liste des commandes
+        async function loadCommands() {
+            try {
+                const response = await fetch('/api/commands');
+                const data = await response.json();
+                allCommands = data.commands;
+                commandCategories = data.categories;
+                
+                // Créer les filtres de catégories
+                const categoryFilters = document.getElementById('categoryFilters');
+                categoryFilters.innerHTML = `
+                    <button onclick="filterByCategory('ALL')" class="px-4 py-2 rounded-full bg-purple-600 text-white hover:bg-purple-700 transition">
+                        <i class="fas fa-list mr-2"></i>Toutes
+                    </button>
+                    ${Object.entries(commandCategories).map(([key, cat]) => `
+                        <button onclick="filterByCategory('${key}')" class="px-4 py-2 rounded-full bg-${cat.color}-600 text-white hover:bg-${cat.color}-700 transition">
+                            <i class="fas ${cat.icon} mr-2"></i>${cat.name}
+                        </button>
+                    `).join('')}
+                `;
+
+                displayCommands();
+            } catch (error) {
+                console.error('Erreur lors du chargement des commandes:', error);
+            }
+        }
+
+        // Filtrer les commandes par catégorie
+        function filterByCategory(category) {
+            selectedCategory = category;
+            displayCommands();
+        }
+
+        // Afficher les commandes filtrées
+        function displayCommands() {
+            const commandsList = document.getElementById('commandsList');
+            const filteredCommands = selectedCategory === 'ALL' 
+                ? allCommands 
+                : allCommands.filter(cmd => cmd.category === selectedCategory);
+
+            if (!filteredCommands || filteredCommands.length === 0) {
+                commandsList.innerHTML = '<p class="text-gray-400">Aucune commande disponible</p>';
+                return;
+            }
+
+            // Trier les commandes par nom
+            filteredCommands.sort((a, b) => a.name.localeCompare(b.name));
+
+            commandsList.innerHTML = filteredCommands.map(cmd => {
+                const category = commandCategories[cmd.category] || commandCategories.OTHER;
+                return `
+                    <div class="bg-gray-700 rounded-lg p-5 flex flex-col justify-between cursor-pointer hover:bg-gray-600 transition" onclick="showCommandDetails('${cmd.name}')">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-lg font-semibold">${cmd.name}</h4>
+                                <span class="bg-${category.color}-600 text-xs px-2 py-1 rounded">
+                                    <i class="fas ${category.icon} mr-1"></i>${category.name}
+                                </span>
+                            </div>
+                            <p class="text-gray-400 text-sm">${cmd.description || 'Aucune description'}</p>
+                        </div>
+                        <div class="mt-4 flex space-x-2">
+                            <span class="bg-purple-600 text-xs px-2 py-1 rounded">
+                                ${cmd.type === 2 ? 'Menu Contextuel' : 'Slash Command'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Fonction pour formater les permissions
+        function formatPermissions(permissions) {
+            if (!permissions) return 'Tout le monde';
+            return 'Administrateur';
+        }
+
+        // Fonction pour formater les options
+        function formatOptions(options) {
+            if (!options || options.length === 0) return 'Aucune';
+            return options.map(opt => `${opt.name}: ${opt.description}`).join('<br>');
+        }
+
+        // Fonction pour afficher les détails d'une commande
+        async function showCommandDetails(name) {
+            try {
+                const command = allCommands.find(cmd => cmd.name === name);
+                if (!command) {
+                    console.error('Commande non trouvée');
+                    return;
+                }
+
+                const modal = document.getElementById('commandModal');
+                const modalContent = document.getElementById('commandDetails');
+                
+                modalContent.innerHTML = `
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold">${command.name}</h3>
+                            <div class="flex space-x-2">
+                                <button onclick="editCommand('${command.id}')" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    <i class="fas fa-edit"></i> Modifier
+                                </button>
+                                <button onclick="deleteCommand('${command.id}')" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+                                    <i class="fas fa-trash"></i> Supprimer
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-400">Description</h4>
+                                <p>${command.description || 'Aucune description'}</p>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-400">Type</h4>
+                                <p>${command.type === 2 ? 'Menu Contextuel' : 'Slash Command'}</p>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-400">Permissions</h4>
+                                <p>${formatPermissions(command.defaultMemberPermissions)}</p>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-400">Utilisable en DM</h4>
+                                <p>${command.dmPermission ? 'Oui' : 'Non'}</p>
+                            </div>
+                            ${command.type !== 2 ? `
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-400">Options</h4>
+                                <p>${formatOptions(command.options)}</p>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                modal.classList.remove('hidden');
+            } catch (error) {
+                console.error('Erreur lors de l\'affichage des détails de la commande:', error);
+            }
+        }
+
+        // Fonction pour fermer la modal
+        function closeCommandModal() {
+            const modal = document.getElementById('commandModal');
+            modal.classList.add('hidden');
+        }
+
+        // Fonction pour afficher le formulaire d'ajout de commande
+        function showAddCommandModal() {
+            document.getElementById('formTitle').textContent = 'Nouvelle Commande';
+            document.getElementById('commandForm').reset();
+            document.getElementById('commandId').value = '';
+            document.getElementById('commandFormModal').classList.remove('hidden');
+        }
+
+        // Fonction pour afficher le formulaire de modification
+        function editCommand(id) {
+            const command = allCommands.find(cmd => cmd.id === id);
+            if (!command) return;
+
+            document.getElementById('formTitle').textContent = 'Modifier la Commande';
+            document.getElementById('commandId').value = command.id;
+            document.getElementById('commandNameInput').value = command.name;
+            document.getElementById('commandDescription').value = command.description;
+            document.getElementById('commandCategory').value = command.category || 'OTHER';
+            document.getElementById('commandPermissions').value = command.defaultMemberPermissions ? command.defaultMemberPermissions.toString() : '0';
+            document.getElementById('commandDmPermission').checked = command.dmPermission;
+            document.getElementById('commandCode').value = command.code || '';
+
+            // Réinitialiser les options
+            const optionsContainer = document.getElementById('commandOptions');
+            optionsContainer.innerHTML = '';
+            
+            // Ajouter les options existantes
+            if (command.options && command.options.length > 0) {
+                command.options.forEach(option => {
+                    addCommandOption({
+                        name: option.name,
+                        type: parseInt(option.type),
+                        description: option.description,
+                        required: option.required
+                    });
+                });
+            }
+
+            document.getElementById('commandFormModal').classList.remove('hidden');
+        }
+
+        // Fonction pour fermer le formulaire
+        function closeCommandFormModal() {
+            document.getElementById('commandFormModal').classList.add('hidden');
+        }
+
+        // Fonction pour ajouter une option de commande
+        function addCommandOption(option = null) {
+            const optionsContainer = document.getElementById('commandOptions');
+            const optionId = Date.now();
+            
+            const optionHtml = `
+                <div class="bg-gray-700 p-3 rounded" id="option-${optionId}">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-sm font-medium text-gray-300">Option</h4>
+                        <button type="button" onclick="removeCommandOption(${optionId})" class="text-red-400 hover:text-red-300">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Nom</label>
+                            <input type="text" class="bg-gray-600 text-white px-2 py-1 rounded w-full text-sm" 
+                                   name="option-name" value="${option?.name || ''}" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Type</label>
+                            <select class="bg-gray-600 text-white px-2 py-1 rounded w-full text-sm" name="option-type">
+                                <option value="3" ${option?.type === 3 ? 'selected' : ''}>Texte</option>
+                                <option value="4" ${option?.type === 4 ? 'selected' : ''}>Nombre entier</option>
+                                <option value="10" ${option?.type === 10 ? 'selected' : ''}>Nombre décimal</option>
+                                <option value="5" ${option?.type === 5 ? 'selected' : ''}>Booléen</option>
+                                <option value="6" ${option?.type === 6 ? 'selected' : ''}>Utilisateur</option>
+                                <option value="7" ${option?.type === 7 ? 'selected' : ''}>Canal</option>
+                                <option value="8" ${option?.type === 8 ? 'selected' : ''}>Rôle</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <label class="block text-xs text-gray-400 mb-1">Description</label>
+                        <input type="text" class="bg-gray-600 text-white px-2 py-1 rounded w-full text-sm" 
+                               name="option-description" value="${option?.description || ''}" required>
+                    </div>
+                    <div class="mt-2">
+                        <label class="block text-xs text-gray-400 mb-1">
+                            <input type="checkbox" class="form-checkbox h-4 w-4 text-purple-600" 
+                                   name="option-required" ${option?.required ? 'checked' : ''}>
+                            Option requise
+                        </label>
+                    </div>
+                </div>
+            `;
+            
+            optionsContainer.insertAdjacentHTML('beforeend', optionHtml);
+        }
+
+        // Fonction pour supprimer une option
+        function removeCommandOption(optionId) {
+            const optionElement = document.getElementById(`option-${optionId}`);
+            if (optionElement) {
+                optionElement.remove();
+            }
+        }
+
+        // Fonction pour récupérer les options du formulaire
+        function getCommandOptions() {
+            const options = [];
+            const optionElements = document.querySelectorAll('[id^="option-"]');
+            
+            optionElements.forEach(element => {
+                const name = element.querySelector('[name="option-name"]').value;
+                const type = parseInt(element.querySelector('[name="option-type"]').value);
+                const description = element.querySelector('[name="option-description"]').value;
+                const required = element.querySelector('[name="option-required"]').checked;
+                
+                if (name && type && description) {
+                    options.push({
+                        name,
+                        type,
+                        description,
+                        required
+                    });
+                }
+            });
+            
+            return options;
+        }
+
+        // Gestionnaire de soumission du formulaire
+        document.getElementById('commandForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const commandId = document.getElementById('commandId').value;
+            const commandData = {
+                name: document.getElementById('commandNameInput').value,
+                description: document.getElementById('commandDescription').value,
+                category: document.getElementById('commandCategory').value,
+                defaultMemberPermissions: document.getElementById('commandPermissions').value === '0' ? null : document.getElementById('commandPermissions').value,
+                dmPermission: document.getElementById('commandDmPermission').checked,
+                code: document.getElementById('commandCode').value,
+                options: getCommandOptions()
+            };
+
+            try {
+                const url = commandId ? `/api/commands/${commandId}` : '/api/commands';
+                const method = commandId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(commandData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Commande ' + (commandId ? 'modifiée' : 'créée') + ' avec succès', 'success');
+                    closeCommandFormModal();
+                    await loadCommands(); // Recharger les commandes après la modification
+                } else {
+                    showToast(result.error || 'Erreur lors de l\'opération', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showToast('Erreur lors de l\'opération', 'error');
+            }
+        });
+
+        // Fonction pour supprimer une commande
+        async function deleteCommand(id) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette commande ?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/commands/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Commande supprimée avec succès', 'success');
+                    closeCommandModal();
+                    loadCommands();
+                } else {
+                    showToast(result.error || 'Erreur lors de la suppression', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showToast('Erreur lors de la suppression', 'error');
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg text-white ${
+                type === 'success' ? 'bg-green-600' : 
+                type === 'error' ? 'bg-red-600' : 
+                'bg-blue-600'
+            }`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Charger les commandes au chargement de la page
+        loadCommands();
+
+        // Écouter les mises à jour en temps réel
+        const socket = io();
+        socket.on('commandsUpdate', (commands) => {
+            allCommands = commands;
+            displayCommands();
+        });
+    </script>
+</body>
+</html> 

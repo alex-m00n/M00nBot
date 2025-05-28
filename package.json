@@ -1,5 +1,5 @@
 {
-  "name": "m00n_bot",
+  "name": "m00nbot",
   "author": {
     "name": "AlexM00n",
     "email": "alex.m00n1.contact@gmail.com",
@@ -8,33 +8,47 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js",
+    "dev": "nodemon index.js",
     "build": "npm install --no-package-lock --no-audit --no-fund",
     "clean": "if exist node_modules rmdir /s /q node_modules",
-    "rebuild": "npm run clean && npm run build"
+    "rebuild": "npm run clean && npm run build",
+    "dashboard": "node dashboard/server.js",
+    "dashboard:dev": "nodemon dashboard/server.js"
   },
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
     "@discordjs/voice": "^0.18.0",
     "@distube/yt-dlp": "^2.0.1",
     "@fastify/busboy": "^2.1.0",
+    "connect-mongo": "^5.1.0",
     "discord-player": "^7.1.0",
-    "discord.js": "^14.18.0",
+    "discord.js": "^14.14.1",
     "distube": "^5.0.7",
-    "dotenv": "^16.5.0",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.9",
+    "express": "^4.18.3",
+    "express-ejs-layouts": "^2.5.1",
+    "express-session": "^1.18.0",
     "ffmpeg-static": "^5.2.0",
     "keytar": "^7.9.0",
     "libsodium-wrappers": "^0.7.13",
     "moment": "^2.30.1",
+    "mongoose": "^8.2.1",
+    "passport": "^0.7.0",
+    "passport-discord": "^0.1.4",
     "play-dl": "^1.9.7",
+    "socket.io": "^4.7.4",
     "spotify-url-info": "^3.2.18",
     "undici": "^5.28.3",
     "ytdl-core": "^4.11.5",
     "ytdl-core-discord": "^1.3.1"
   },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
   "version": "1.0.0",
   "main": "index.js",
   "keywords": [],
   "license": "ISC",
-  "description": ""
+  "description": "Bot Discord M00nBot"
 }

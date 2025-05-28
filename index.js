@@ -34,6 +34,24 @@ const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('
 
 const commandModules = {};
 
+const CHANNEL_IDS = {
+    TOTAL_MEMBERS: "1321963617117012048",
+    MEMBERS: "1321963655201292340",
+    BOTS: "1321963676013690880",
+    WELCOME: "1087789238306754751",
+    RULES: "1087777468515098694",
+    TICKETS: {
+        PARENT: "1353461256316518410",
+        ARCHIVE: "1360580662263812350"
+    }
+};
+
+const ROLE_IDS = {
+    MEMBER: "1101378928079294574",
+    UNVERIFIED: "1101381543173304371",
+    STAFF: "1103256186326892554"
+};
+
 (async () => {
     try {
         for (const file of commandFiles) {
@@ -71,7 +89,6 @@ client.once('ready', async () => {
     client.channels.cache.get("1321963617117012048").setName(`🗣️Total membres: ${total}🤖`);
     client.channels.cache.get("1321963655201292340").setName(`🗣️Membres: ${nmbhu}🗣️`);
     client.channels.cache.get("1321963676013690880").setName(`🤖Bot: ${nmbbot}🤖`);
-
 
     let status = [
         {
@@ -121,7 +138,6 @@ client.once('ready', async () => {
             status: "dnd"
         },
     ];
-
 
     setInterval(() => {
         try {
@@ -190,157 +206,195 @@ client.distube = new DisTube(client, {
     ]
 });
 
-
-client.on("guildMemberAdd", (member) => {
-    const nmbbot = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => member.user.bot).size;
-    const nmbhu = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => !member.user.bot).size;
-    const total = client.guilds.cache.get(GUILD_ID).memberCount;
-
-    client.channels.cache.get("1321963617117012048").setName(`🗣️Total membres: ${total}🤖`);
-    client.channels.cache.get("1321963655201292340").setName(`🗣️Membres: ${nmbhu}🗣️`);
-    client.channels.cache.get("1321963676013690880").setName(`🤖Bot: ${nmbbot}🤖`);
-
-    console.log("✅ Un membre est arrivé")
-
-    member.roles.add("1101381543173304371")
+client.on("guildMemberAdd", async (member) => {
+    try {
+        await updateMemberCounters(member.guild);
+        console.log("✅ Un membre est arrivé");
+        await member.roles.add(ROLE_IDS.UNVERIFIED);
+    } catch (error) {
+        console.error("❌ Erreur lors de l'arrivée d'un membre:", error);
+    }
 });
 
-client.on("guildMemberRemove", (member) => {
-    console.log("❌ Un membre est partit")
+client.on("guildMemberRemove", async (member) => {
+    try {
+        console.log("❌ Un membre est parti");
+        await updateMemberCounters(member.guild);
 
-    const nmbbot = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => member.user.bot).size;
-    const nmbhu = client.guilds.cache.get(GUILD_ID).members.cache.filter(member => !member.user.bot).size;
-    const total = client.guilds.cache.get(GUILD_ID).memberCount;
+        const embedAurevoir = new EmbedBuilder()
+            .setColor("#ff0000")
+            .setTitle(`À bientôt sur le serveur __${member.guild.name}__! 🎉`)
+            .setDescription(`${member.user} a quitté le serveur !`)
+            .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+            .setFooter({ text: `Nous sommes maintenant ${member.guild.members.cache.filter(member => !member.user.bot).size} sur le serveur !` });
 
-    client.channels.cache.get("1321963617117012048").setName(`🗣️Total membres: ${total}🤖`);
-    client.channels.cache.get("1321963655201292340").setName(`🗣️Membres: ${nmbhu}🗣️`);
-    client.channels.cache.get("1321963676013690880").setName(`🤖Bot: ${nmbbot}🤖`);
-
-    const embedAurevoir = new EmbedBuilder()
-        .setColor("#ff0000")
-        .setTitle(`À bientôt sur le serveur __${member.guild.name}__! 🎉`)
-        .setDescription(`${member.user} a quitté le serveur !`)
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-        .setFooter({ text: `Nous sommes maintenant ${member.guild.members.cache.filter(member => !member.user.bot).size} sur le serveur !` });
-
-    client.channels.cache.get('1087789238306754751').send({ embeds: [embedAurevoir] })
+        await client.channels.cache.get(CHANNEL_IDS.WELCOME).send({ embeds: [embedAurevoir] });
+    } catch (error) {
+        console.error("❌ Erreur lors du départ d'un membre:", error);
+    }
 });
 
 client.on('interactionCreate', async (interaction) => {
-    if (interaction.isCommand()) {
-        const command = interaction.commandName;
-        if (commandModules[command]) {
-            await commandModules[command].execute(interaction);
+    try {
+        if (interaction.isCommand()) {
+            const command = interaction.commandName;
+            if (commandModules[command]) {
+                await commandModules[command].execute(interaction);
+            }
+            console.log('/' + command + ' a été utilisé !');
         }
-        console.log('/' + command + ' a été utilisé !')
-    }
-
-    else if (interaction.isUserContextMenuCommand()) {
-        const command = interaction.commandName;
-        if (commandModules[command]) {
-            await commandModules[command].execute(interaction);
+        else if (interaction.isUserContextMenuCommand()) {
+            const command = interaction.commandName;
+            if (commandModules[command]) {
+                await commandModules[command].execute(interaction);
+            }
+            console.log('ContextMenuCommand ' + command + ' a été utilisé !');
         }
-        console.log('ContextMenuCommand ' + command + ' a été utilisé !')
-    }
-
-    else if (interaction.isButton()) {
-        if (interaction.customId === "verifie") {
-            const embedBienvenue = new EmbedBuilder()
-                .setColor("#00ff00")
-                .setTitle(`Bienvenue sur le serveur __${interaction.guild.name}__! 🎉`)
-                .setDescription(`Salut ${interaction.member.user}, ravi de te voir parmi nous !\n\n📜 Lis le <#1087777468515098694> et amuse-toi bien !`)
-                .setThumbnail(interaction.member.user.displayAvatarURL({ dynamic: true }))
-                .setFooter({ text: `Nous sommes maintenant ${interaction.member.guild.members.cache.filter(member => !member.user.bot).size} sur le serveur !` });
-
-            interaction.member.roles.remove("1101381543173304371")
-            interaction.member.roles.add("1101378928079294574")
-            client.channels.cache.get('1087789238306754751').send({ embeds: [embedBienvenue] })
-            interaction.member.send({ embeds: [embedBienvenue] })
+        else if (interaction.isButton()) {
+            switch (interaction.customId) {
+                case "verifie":
+                    await handleVerification(interaction);
+                    break;
+                case "createtickets":
+                    await handleTicketCreation(interaction);
+                    break;
+                case "closetickets":
+                    await handleTicketClosure(interaction);
+                    break;
+                case "pause":
+                    await pause(interaction);
+                    break;
+                case "resume":
+                    await resume(interaction);
+                    break;
+                case "stop":
+                    await stop(interaction);
+                    break;
+                case "previous":
+                    await previous(interaction);
+                    break;
+                case "next":
+                    await next(interaction);
+                    break;
+            }
+            console.log('Bouton ' + interaction.customId + ' a été utilisé !');
         }
-        else if (interaction.customId === "createtickets") {
-            const ticketChannel = await interaction.guild.channels.create({
-                name: `ticket-${interaction.member.id}`,
-                type: 0,
-                parent: '1353461256316518410',
-                permissionOverwrites: [
-                    {
-                        id: interaction.guild.roles.everyone,
-                        deny: [PermissionsBitField.Flags.ViewChannel],
-                    },
-                    {
-                        id: interaction.member.id,
-                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages],
-                    },
-                    {
-                        id: '1103256186326892554',
-                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages],
-                    }
-                ]
-            });
-
-            const embed = new EmbedBuilder()
-                .setAuthor({
-                    name: "M00nBot",
-                    url: "https://m00n-bot.vercel.app",
-                    iconURL: interaction.client.user.avatarURL(),
-                })
-                .setTitle("Ticket créé")
-                .addFields(
-                    { name: "Salut <@" + interaction.member.id + ">", value: "Explique nous pourquoi tu as créé ce ticket sous cette forme :", inline: false },
-                    { name: "Catégorie :", value: "(Demande d'information/bug/problème avec un ou d'autres membre(s)/demande pour devenir modo ...)", inline: false },
-                    { name: "Explication :", value: "...", inline: false }
-                )
-                .setThumbnail(interaction.guild.iconURL())
-                .setColor("#0099ff");
-
-            const btn = new ButtonBuilder()
-                .setCustomId("closetickets")
-                .setLabel("Fermer le ticket")
-                .setEmoji("✖️")
-                .setStyle(ButtonStyle.Danger);
-
-            const row = new ActionRowBuilder().addComponents(btn);
-            ticketChannel.send({ embeds: [embed], components: [row] });
-            interaction.reply({ content: 'Le ticket a été créé !\n<#' + ticketChannel.id + '>', flags: 64 });
+    } catch (error) {
+        console.error("❌ Erreur lors du traitement de l'interaction:", error);
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", ephemeral: true });
+        } else {
+            await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", ephemeral: true });
         }
-
-        else if (interaction.customId === "closetickets") {
-            const ticketChannel = interaction.channel;
-            const categoryId = '1360580662263812350';
-
-            await ticketChannel.setParent(categoryId)
-                .then(() => {
-                    interaction.reply({ content: `Le ticket a été archivé`, flags: 64 });
-                })
-                .catch(err => {
-                    console.error('Erreur lors du changement de catégorie :', err);
-                    interaction.reply({ content: 'Une erreur est survenue lors de l\'achivage.', flags: 64 });
-                });
-        }
-
-        else if (interaction.customId === 'pause') {
-            await pause(interaction);
-        }
-
-        else if (interaction.customId === 'resume') {
-            await resume(interaction)
-        }
-        
-        else if (interaction.customId === 'stop') {
-            await stop(interaction);
-        }
-
-        else if (interaction.customId === 'previous') {
-            await previous(interaction);
-        }
-
-        else if (interaction.customId === 'next') {
-            await next(interaction);
-        }
-        
-        console.log('Bouton ' + interaction.customId + ' a été utilisé !')
     }
 });
+
+async function handleVerification(interaction) {
+    const embedBienvenue = new EmbedBuilder()
+        .setColor("#00ff00")
+        .setTitle(`Bienvenue sur le serveur __${interaction.guild.name}__! 🎉`)
+        .setDescription(`Salut ${interaction.member.user}, ravi de te voir parmi nous !\n\n📜 Lis le <#${CHANNEL_IDS.RULES}> et amuse-toi bien !`)
+        .setThumbnail(interaction.member.user.displayAvatarURL({ dynamic: true }))
+        .setFooter({ text: `Nous sommes maintenant ${interaction.member.guild.members.cache.filter(member => !member.user.bot).size} sur le serveur !` });
+
+    await interaction.member.roles.remove(ROLE_IDS.UNVERIFIED);
+    await interaction.member.roles.add(ROLE_IDS.MEMBER);
+    await client.channels.cache.get(CHANNEL_IDS.WELCOME).send({ embeds: [embedBienvenue] });
+    await interaction.member.send({ embeds: [embedBienvenue] });
+}
+
+async function handleTicketCreation(interaction) {
+    const ticketChannel = await interaction.guild.channels.create({
+        name: `ticket-${interaction.member.id}`,
+        type: 0,
+        parent: CHANNEL_IDS.TICKETS.PARENT,
+        permissionOverwrites: [
+            {
+                id: interaction.guild.roles.everyone,
+                deny: [PermissionsBitField.Flags.ViewChannel],
+            },
+            {
+                id: interaction.member.id,
+                allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages],
+            },
+            {
+                id: ROLE_IDS.STAFF,
+                allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages],
+            }
+        ]
+    });
+
+    const embed = new EmbedBuilder()
+        .setAuthor({
+            name: "M00nBot",
+            url: "https://m00n-bot.vercel.app",
+            iconURL: interaction.client.user.avatarURL(),
+        })
+        .setTitle("Ticket créé")
+        .addFields(
+            { name: "Salut <@" + interaction.member.id + ">", value: "Explique nous pourquoi tu as créé ce ticket sous cette forme :", inline: false },
+            { name: "Catégorie :", value: "(Demande d'information/bug/problème avec un ou d'autres membre(s)/demande pour devenir modo ...)", inline: false },
+            { name: "Explication :", value: "...", inline: false }
+        )
+        .setThumbnail(interaction.guild.iconURL())
+        .setColor("#0099ff");
+
+    const btn = new ButtonBuilder()
+        .setCustomId("closetickets")
+        .setLabel("Fermer le ticket")
+        .setEmoji("✖️")
+        .setStyle(ButtonStyle.Danger);
+
+    const row = new ActionRowBuilder().addComponents(btn);
+    await ticketChannel.send({ embeds: [embed], components: [row] });
+    await interaction.reply({ content: 'Le ticket a été créé !\n<#' + ticketChannel.id + '>', flags: 64 });
+}
+
+async function handleTicketClosure(interaction) {
+    try {
+        await interaction.channel.setParent(CHANNEL_IDS.TICKETS.ARCHIVE);
+        await interaction.reply({ content: `Le ticket a été archivé`, flags: 64 });
+    } catch (error) {
+        console.error('Erreur lors de la fermeture du ticket:', error);
+        await interaction.reply({ content: 'Une erreur est survenue lors de l\'archivage.', flags: 64 });
+    }
+}
+
+async function updateMemberCounters(guild) {
+    try {
+        const nmbbot = guild.members.cache.filter(member => member.user.bot).size;
+        const nmbhu = guild.members.cache.filter(member => !member.user.bot).size;
+        const total = guild.memberCount;
+
+        console.log("=== DÉBUT MISE À JOUR DES SALONS ===");
+        console.log("Nombre de membres humains:", nmbhu);
+        console.log("Nombre de bots:", nmbbot);
+        console.log("Total:", total);
+
+        const channels = {
+            total: client.channels.cache.get(CHANNEL_IDS.TOTAL_MEMBERS),
+            members: client.channels.cache.get(CHANNEL_IDS.MEMBERS),
+            bots: client.channels.cache.get(CHANNEL_IDS.BOTS)
+        };
+
+        if (channels.members) {
+            await channels.members.setName(`🗣️Membres: ${nmbhu}🗣️`);
+            console.log("✅ Salon membres mis à jour");
+        }
+        if (channels.total) {
+            await channels.total.setName(`🗣️Total membres: ${total}🤖`);
+            console.log("✅ Salon total mis à jour");
+        }
+        if (channels.bots) {
+            await channels.bots.setName(`🤖Bot: ${nmbbot}🤖`);
+            console.log("✅ Salon bots mis à jour");
+        }
+
+        console.log("=== FIN MISE À JOUR DES SALONS ===");
+    } catch (error) {
+        console.error("❌ ERREUR CRITIQUE lors de la mise à jour des salons:", error);
+    }
+}
 
 client.login(TOKEN).catch((err) => {
     console.error('❌ Impossible de se connecter :\n', err);

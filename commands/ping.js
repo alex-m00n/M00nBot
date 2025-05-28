@@ -1,14 +1,15 @@
 import { SlashCommandBuilder } from 'discord.js';
 
+// Configuration de la commande
 export const data = new SlashCommandBuilder()
     .setName('ping')
-    .setDescription('Renvoie Pong et la latence du bot');
+    .setDescription('Affiche la latence du bot');
 
+// Exécution de la commande
 export async function execute(interaction) {
-    const startTime = Date.now();
-    await interaction.reply({content :'Calcul de la latence...', flags: 64 });
-    const endTime = Date.now();
-    const botLatency = endTime - startTime;
+    const sent = await interaction.reply({ content: 'Calcul du ping...', fetchReply: true });
+    const latency = sent.createdTimestamp - interaction.createdTimestamp;
     const apiLatency = Math.round(interaction.client.ws.ping);
-    await interaction.editReply({content:`🏓 Pong !\nLatence du bot : **${botLatency}ms**\nLatence de l'API : **${apiLatency}ms**`, flags : 64});
+
+    await interaction.editReply({ content: `🏓 Pong!\nLatence du bot: ${latency}ms\nLatence de l'API: ${apiLatency}ms`, flags: 64 });
 }

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | M00nBot🌙🤖</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <%- style %>
+</head>
+
+<body class="bg-gray-900 text-white">
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gray-800 fixed h-full">
+            <div class="p-4">
+                <div class="flex items-center">
+                    <% if (client && client.user) { %>
+                        <img src="https://cdn.discordapp.com/avatars/<%= client.user.id %>/<%= client.user.avatar %>.png"
+                            alt="Avatar"
+                            class="w-16 h-16 rounded-full">
+                    <% } else { %>
+                        <div class="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center">
+                            <i class="fas fa-robot text-2xl"></i>
+                        </div>
+                    <% } %>
+                    <h1 class="text-2xl font-bold text-purple-500 ml-2">M00nBot</h1>
+                </div>
+            </div>
+            <nav class="mt-8">
+                <a href="/dashboard" class="flex items-center px-4 py-2 text-gray-300 <%= path === '/dashboard' ? 'bg-gray-700' : 'hover:bg-gray-700' %>">
+                    <i class="fas fa-home w-6"></i>
+                    <span>Accueil</span>
+                </a>
+                <a href="/dashboard/commands" class="flex items-center px-4 py-2 text-gray-300 <%= path === '/dashboard/commands' ? 'bg-gray-700' : 'hover:bg-gray-700' %>">
+                    <i class="fas fa-terminal w-6"></i>
+                    <span>Commandes</span>
+                </a>
+                <a href="/dashboard/logs" class="flex items-center px-4 py-2 text-gray-300 <%= path === '/dashboard/logs' ? 'bg-gray-700' : 'hover:bg-gray-700' %>">
+                    <i class="fas fa-list w-6"></i>
+                    <span>Logs</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 ml-64">
+            <!-- Top Navigation -->
+            <header class="bg-gray-800 shadow-lg fixed w-full z-10">
+                <div class="flex items-center justify-between px-8 py-4">
+                    <h2 class="text-xl font-semibold"><%= title %></h2>
+                    <div class="flex items-center space-x-4">
+                        <% if (user) { %>
+                            <div class="flex items-center">
+                                <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png"
+                                    alt="Avatar" class="w-8 h-8 rounded-full">
+                                <span class="ml-2">
+                                    <%= user.username %>
+                                </span>
+                            </div>
+                            <a href="/logout" class="text-gray-300 hover:text-white">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </a>
+                        <% } else { %>
+                            <a href="/login" class="text-gray-300 hover:text-white">
+                                <i class="fas fa-sign-in-alt"></i> Connexion
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="p-8 mt-16">
+                <%- body %>
+            </main>
+        </div>
+    </div>
+
+    <%- script %>
+</body>
+
+</html> 

@@ -1,0 +1,253 @@
+<%- contentFor('body') %>
+
+<div class="max-w-6xl mx-auto">
+    <!-- Informations du serveur -->
+    <div class="bg-gray-800 rounded-lg p-6 mb-8">
+        <div class="flex items-center">
+            <% if (guild && guild.icon) { %>
+                <img src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png"
+                    alt="<%= guild.name %>" class="w-16 h-16 rounded-full">
+            <% } else { %>
+                <div class="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center">
+                    <i class="fas fa-server text-2xl"></i>
+                </div>
+            <% } %>
+            <div class="ml-4">
+                <h3 class="text-xl font-semibold">
+                    <%= guild ? guild.name : 'Serveur' %>
+                </h3>
+                <p class="text-gray-400">ID: <%= guild ? guild.id : 'Chargement...' %></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-600 bg-opacity-75">
+                    <i class="fas fa-users text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-400">Membres</p>
+                    <p class="text-2xl font-semibold" id="usersCount">-</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-600 bg-opacity-75">
+                    <i class="fas fa-terminal text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-400">Commandes</p>
+                    <p class="text-2xl font-semibold" id="commandsCount">-</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-yellow-600 bg-opacity-75">
+                    <i class="fas fa-clock text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-400">Uptime</p>
+                    <p class="text-2xl font-semibold" id="uptime">-</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statut du bot -->
+    <div class="bg-gray-800 rounded-lg p-6 mb-8">
+        <h3 class="text-lg font-semibold mb-4">Statut du bot</h3>
+        <div class="space-y-4">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center">
+                    <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                    <span>En ligne</span>
+                </div>
+                <div class="text-gray-400">
+                    <span>Ping: </span>
+                    <span id="ping">-</span>
+                    <span>ms</span>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 pt-4">
+                <h4 class="text-sm font-medium text-gray-400 mb-2">Activité actuelle</h4>
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-gamepad text-gray-400"></i>
+                    <div>
+                        <p class="text-sm" id="activityType">-</p>
+                        <p class="text-sm text-gray-400" id="activityName">-</p>
+                        <p class="text-sm text-gray-400" id="activityDetails">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Envoyer un message -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h3 class="text-lg font-semibold mb-4">Envoyer un message</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">ID du canal</label>
+                <input type="text" id="channelId"
+                    class="bg-gray-700 text-white px-4 py-2 rounded w-full" placeholder="ID du canal">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Message</label>
+                <textarea id="messageContent"
+                    class="bg-gray-700 text-white px-4 py-2 rounded w-full h-32"
+                    placeholder="Votre message..."></textarea>
+            </div>
+            <button onclick="sendMessage()"
+                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded">
+                <i class="fas fa-paper-plane mr-2"></i>Envoyer
+            </button>
+        </div>
+    </div>
+</div>
+
+<%- contentFor('scripts') %>
+<script>
+    // Fonction pour formater l'uptime
+    function formatUptime(ms) {
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (days > 0) return `${days}j ${hours % 24}h`;
+        if (hours > 0) return `${hours}h ${minutes % 60}m`;
+        if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+        return `${seconds}s`;
+    }
+
+    // Fonction pour mettre à jour les statistiques
+    async function updateStats() {
+        try {
+            const response = await fetch('/api/stats');
+            const stats = await response.json();
+
+            if (stats.error) {
+                console.error('Erreur:', stats.error);
+                return;
+            }
+
+            document.getElementById('usersCount').textContent = stats.users;
+            document.getElementById('commandsCount').textContent = stats.commands;
+            document.getElementById('uptime').textContent = formatUptime(stats.uptime);
+            document.getElementById('ping').textContent = stats.ping;
+            
+            // Mise à jour de l'activité
+            const activityElement = document.getElementById('activityType');
+            const nameElement = document.getElementById('activityName');
+            const detailsElement = document.getElementById('activityDetails');
+
+            if (stats.activity) {
+                const activityTypes = {
+                    'PLAYING': 'Joue à',
+                    'STREAMING': 'Stream',
+                    'LISTENING': 'Écoute',
+                    'WATCHING': 'Regarde',
+                    'COMPETING': 'Participe à'
+                };
+
+                activityElement.textContent = activityTypes[stats.activity.type] || stats.activity.type;
+                nameElement.textContent = stats.activity.name || '-';
+                detailsElement.textContent = stats.activity.details || stats.activity.state || '';
+            } else {
+                activityElement.textContent = '-';
+                nameElement.textContent = '-';
+                detailsElement.textContent = '';
+            }
+        } catch (error) {
+            console.error('Erreur lors de la récupération des statistiques:', error);
+        }
+    }
+
+    // Mettre à jour les statistiques toutes les 30 secondes
+    updateStats();
+    setInterval(updateStats, 30000);
+
+    // Mise à jour en temps réel avec Socket.IO
+    const socket = io();
+    socket.on('statsUpdate', (stats) => {
+        if (!stats) return;
+
+        // Mise à jour des statistiques de base
+        if (stats.users) document.getElementById('usersCount').textContent = stats.users;
+        if (stats.commands) document.getElementById('commandsCount').textContent = stats.commands;
+        if (stats.uptime) document.getElementById('uptime').textContent = formatUptime(stats.uptime);
+        if (stats.ping) document.getElementById('ping').textContent = stats.ping;
+        
+        // Mise à jour de l'activité
+        const activityElement = document.getElementById('activityType');
+        const nameElement = document.getElementById('activityName');
+        const detailsElement = document.getElementById('activityDetails');
+
+        if (stats.activity) {
+            const activityTypes = {
+                'PLAYING': 'Joue à',
+                'STREAMING': 'Stream',
+                'LISTENING': 'Écoute',
+                'WATCHING': 'Regarde',
+                'COMPETING': 'Participe à'
+            };
+
+            activityElement.textContent = activityTypes[stats.activity.type] || stats.activity.type;
+            nameElement.textContent = stats.activity.name || '-';
+            detailsElement.textContent = stats.activity.details || stats.activity.state || '';
+        } else {
+            activityElement.textContent = '-';
+            nameElement.textContent = '-';
+            detailsElement.textContent = '';
+        }
+    });
+
+    // Fonction pour envoyer un message
+    async function sendMessage() {
+        const channelId = document.getElementById('channelId').value;
+        const content = document.getElementById('messageContent').value;
+
+        if (!channelId || !content) {
+            showToast('Veuillez remplir tous les champs', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/send-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ channelId, content })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('Message envoyé avec succès', 'success');
+                document.getElementById('messageContent').value = '';
+            } else {
+                showToast(result.error || 'Erreur lors de l\'envoi du message', 'error');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            showToast('Erreur lors de l\'envoi du message', 'error');
+        }
+    }
+
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg text-white ${type === 'success' ? 'bg-green-600' :
+                type === 'error' ? 'bg-red-600' :
+                    'bg-blue-600'
+            }`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+</script>
