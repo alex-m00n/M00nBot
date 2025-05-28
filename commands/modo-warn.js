@@ -2,7 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.
 
 // Configuration de la commande
 export const data = new SlashCommandBuilder()
-    .setName('warn-user')
+    .setName('modo-warn')
     .setDescription('Avertit un membre du serveur')
     .addUserOption(option =>
         option.setName('membre')
