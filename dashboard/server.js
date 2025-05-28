@@ -7,10 +7,12 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import http from 'http';
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, AttachmentBuilder } from 'discord.js';
 import { Server } from 'socket.io';
 import fs from 'fs/promises';
 import expressLayouts from 'express-ejs-layouts';
+import multer from 'multer';
+import sharp from 'sharp';
 
 // Configuration des variables d'environnement
 dotenv.config();
@@ -19,12 +21,22 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Configuration de multer pour le stockage temporaire des fichiers
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 8 * 1024 * 1024, // Limite de 8MB par fichier
+        files: 10 // Maximum 10 fichiers
+    }
+});
+
 // Configuration du client Discord
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildPresences
     ]
 });
@@ -236,28 +248,13 @@ async function getStats() {
     const guild = client.guilds.cache.first();
     if (!guild) return null;
 
-    const activity = client.user.presence.activities[0];
-    console.log('Activité actuelle:', activity);
 
     return {
         guilds: 1,
         users: guild.memberCount,
         commands: client.commands.size,
         uptime: client.uptime,
-        ping: client.ws.ping,
-        activity: activity ? {
-            type: activity.type,
-            name: activity.name,
-            state: activity.state,
-            details: activity.details,
-            url: activity.url
-        } : {
-            type: 'WATCHING',
-            name: 'M00nBot Dashboard',
-            state: '',
-            details: '',
-            url: ''
-        }
+        ping: client.ws.ping
     };
 }
 
@@ -428,6 +425,7 @@ function addActivityLog(type, description, data = {}) {
         timestamp: new Date()
     };
 
+    console.log('Ajout d\'un nouveau log:', log);
     activityLogs.unshift(log);
     if (activityLogs.length > MAX_LOGS) {
         activityLogs.pop();
@@ -439,9 +437,20 @@ function addActivityLog(type, description, data = {}) {
 // Configuration des événements Discord
 client.on('messageCreate', (message) => {
     if (message.author.bot) return;
+    console.log('Nouveau message reçu:', {
+        content: message.content,
+        author: message.author.tag,
+        channelId: message.channel.id
+    });
     addActivityLog('message', `Nouveau message de ${message.author.tag}`, {
         channelId: message.channel.id,
-        guildId: message.guild?.id
+        guildId: message.guild?.id,
+        content: message.content,
+        author: {
+            id: message.author.id,
+            username: message.author.username,
+            discriminator: message.author.discriminator
+        }
     });
 });
 
@@ -543,11 +552,30 @@ app.get('/api/activity', checkPermissions, async (req, res) => {
         const paginatedLogs = filteredLogs.slice(start, end);
         const total = filteredLogs.length;
 
+        // Ajout des informations de canal et de serveur
+        const enrichedLogs = await Promise.all(paginatedLogs.map(async log => {
+            if (log.data.channelId) {
+                try {
+                    const guild = client.guilds.cache.first();
+                    if (guild) {
+                        const channel = await guild.channels.fetch(log.data.channelId);
+                        if (channel) {
+                            log.data.channelName = channel.name;
+                            log.data.guildName = guild.name;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erreur lors de la récupération des informations du canal:', error);
+                }
+            }
+            return log;
+        }));
+
         res.json({
-            activities: paginatedLogs,
+            activities: enrichedLogs,
             pagination: {
                 current: page,
-                total: Math.ceil(total / limit),
+                total: total,
                 hasMore: end < total
             }
         });
@@ -825,9 +853,55 @@ app.delete('/api/commands/:id', checkPermissions, async (req, res) => {
     }
 });
 
-// Fonction pour envoyer un message
-async function sendBotMessage(channelId, content) {
+// Fonction pour compresser une image si nécessaire
+async function compressImageIfNeeded(buffer, filename) {
+    if (!filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+        return buffer; // Pas une image, retourner le buffer original
+    }
+
     try {
+        const image = sharp(buffer);
+        const metadata = await image.metadata();
+        
+        // Si l'image fait moins de 8MB, la retourner telle quelle
+        if (buffer.length < 8 * 1024 * 1024) {
+            return buffer;
+        }
+
+        // Compression de l'image
+        return await image
+            .resize(Math.min(metadata.width, 1920), Math.min(metadata.height, 1080), {
+                fit: 'inside',
+                withoutEnlargement: true
+            })
+            .jpeg({ quality: 80 })
+            .toBuffer();
+    } catch (error) {
+        console.error('Erreur lors de la compression de l\'image:', error);
+        return buffer;
+    }
+}
+
+// Configuration de la route d'envoi de message
+app.post('/api/send-message', checkPermissions, upload.array('files', 10), async (req, res) => {
+    try {
+        const { channelId, content } = req.body;
+        const files = req.files;
+
+        if (!channelId) {
+            return res.status(400).json({
+                success: false,
+                error: 'ID du canal requis'
+            });
+        }
+
+        if (!content && (!files || files.length === 0)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Message ou fichier(s) requis'
+            });
+        }
+
         const guild = client.guilds.cache.first();
         if (!guild) {
             throw new Error('Aucun serveur trouvé');
@@ -838,51 +912,65 @@ async function sendBotMessage(channelId, content) {
             throw new Error('Canal non trouvé');
         }
 
-        const message = await channel.send(content);
-        return {
+        const messageOptions = {
+            content: content || undefined
+        };
+
+        if (files && files.length > 0) {
+            // Calculer la taille totale des fichiers
+            const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+            
+            if (totalSize > 8 * 1024 * 1024) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'La taille totale des fichiers ne doit pas dépasser 8MB'
+                });
+            }
+
+            const attachments = await Promise.all(files.map(async file => {
+                let fileBuffer = file.buffer;
+                
+                // Vérifier la taille du fichier
+                if (fileBuffer.length > 8 * 1024 * 1024) {
+                    // Essayer de compresser si c'est une image
+                    fileBuffer = await compressImageIfNeeded(fileBuffer, file.originalname);
+                    
+                    // Si le fichier est toujours trop grand après compression
+                    if (fileBuffer.length > 8 * 1024 * 1024) {
+                        throw new Error(`Le fichier ${file.originalname} est trop volumineux (max 8MB)`);
+                    }
+                }
+
+                return new AttachmentBuilder(fileBuffer, {
+                    name: file.originalname
+                });
+            }));
+
+            messageOptions.files = attachments;
+        }
+
+        const message = await channel.send(messageOptions);
+
+        addActivityLog('message', `Message envoyé dans le canal ${channel.name}`, {
+            channelId,
+            content,
+            files: files ? files.map(f => f.originalname) : null
+        });
+
+        res.json({
             success: true,
             message: {
                 id: message.id,
                 content: message.content,
-                timestamp: message.createdTimestamp
+                timestamp: message.createdTimestamp,
+                attachments: message.attachments.size
             }
-        };
-    } catch (error) {
-        console.error('Erreur lors de l\'envoi du message:', error);
-        return {
-            success: false,
-            error: error.message
-        };
-    }
-}
-
-// Configuration de la route d'envoi de message
-app.post('/api/send-message', checkPermissions, async (req, res) => {
-    try {
-        const { channelId, content } = req.body;
-
-        if (!channelId || !content) {
-            return res.status(400).json({
-                success: false,
-                error: 'ID du canal et contenu requis'
-            });
-        }
-
-        const result = await sendBotMessage(channelId, content);
-
-        if (result.success) {
-            addActivityLog('message', `Message envoyé dans le canal ${channelId}`, {
-                channelId,
-                content
-            });
-        }
-
-        res.json(result);
+        });
     } catch (error) {
         console.error('Erreur lors de l\'envoi du message:', error);
         res.status(500).json({
             success: false,
-            error: 'Erreur lors de l\'envoi du message'
+            error: error.message || 'Erreur lors de l\'envoi du message'
         });
     }
 });

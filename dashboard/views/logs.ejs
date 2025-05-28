@@ -154,6 +154,11 @@
                                             Salon: ${log.data.channelName || log.data.channelId}
                                         </p>
                                     ` : ''}
+                                    ${log.type === 'message' && log.data.content ? `
+                                        <div class="mt-2 p-3 bg-gray-600 rounded-lg">
+                                            <p class="text-white whitespace-pre-wrap">${formatMessageContent(log.data.content)}</p>
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                         </div>
@@ -175,6 +180,26 @@
             }
 
             isLoading = false;
+        }
+
+        // Fonction pour échapper les caractères HTML
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Fonction pour formater le contenu du message
+        function formatMessageContent(content) {
+            if (!content) return '';
+            return escapeHtml(content)
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code>$1</code>');
         }
 
         // Écouteurs d'événements pour les filtres

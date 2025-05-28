@@ -73,37 +73,32 @@
                     <span>ms</span>
                 </div>
             </div>
-            <div class="border-t border-gray-700 pt-4">
-                <h4 class="text-sm font-medium text-gray-400 mb-2">Activité actuelle</h4>
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-gamepad text-gray-400"></i>
-                    <div>
-                        <p class="text-sm" id="activityType">-</p>
-                        <p class="text-sm text-gray-400" id="activityName">-</p>
-                        <p class="text-sm text-gray-400" id="activityDetails">-</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
     <!-- Envoyer un message -->
-    <div class="bg-gray-800 rounded-lg p-6">
+    <div class="bg-gray-800 rounded-lg p-4">
         <h3 class="text-lg font-semibold mb-4">Envoyer un message</h3>
         <div class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-gray-400 mb-2">ID du canal</label>
-                <input type="text" id="channelId"
-                    class="bg-gray-700 text-white px-4 py-2 rounded w-full" placeholder="ID du canal">
+                <label class="block text-sm font-medium text-gray-400 mb-2">Salon</label>
+                <select id="messageChannel" class="bg-gray-700 text-white px-4 py-2 rounded w-full">
+                    <option value="">Sélectionnez un salon</option>
+                    <% guild.channels.cache.filter(c => c.type === 0).forEach(channel => { %>
+                        <option value="<%= channel.id %>">#<%= channel.name %></option>
+                    <% }); %>
+                </select>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-400 mb-2">Message</label>
-                <textarea id="messageContent"
-                    class="bg-gray-700 text-white px-4 py-2 rounded w-full h-32"
-                    placeholder="Votre message..."></textarea>
+                <textarea id="messageContent" class="bg-gray-700 text-white px-4 py-2 rounded w-full h-32" placeholder="Entrez votre message..."></textarea>
             </div>
-            <button onclick="sendMessage()"
-                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Fichiers (max 8MB au total)</label>
+                <input type="file" id="messageFiles" class="bg-gray-700 text-white px-4 py-2 rounded w-full" multiple>
+                <div id="selectedFiles" class="mt-2"></div>
+            </div>
+            <button id="sendMessageBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded w-full">
                 <i class="fas fa-paper-plane mr-2"></i>Envoyer
             </button>
         </div>
@@ -140,29 +135,6 @@
             document.getElementById('commandsCount').textContent = stats.commands;
             document.getElementById('uptime').textContent = formatUptime(stats.uptime);
             document.getElementById('ping').textContent = stats.ping;
-            
-            // Mise à jour de l'activité
-            const activityElement = document.getElementById('activityType');
-            const nameElement = document.getElementById('activityName');
-            const detailsElement = document.getElementById('activityDetails');
-
-            if (stats.activity) {
-                const activityTypes = {
-                    'PLAYING': 'Joue à',
-                    'STREAMING': 'Stream',
-                    'LISTENING': 'Écoute',
-                    'WATCHING': 'Regarde',
-                    'COMPETING': 'Participe à'
-                };
-
-                activityElement.textContent = activityTypes[stats.activity.type] || stats.activity.type;
-                nameElement.textContent = stats.activity.name || '-';
-                detailsElement.textContent = stats.activity.details || stats.activity.state || '';
-            } else {
-                activityElement.textContent = '-';
-                nameElement.textContent = '-';
-                detailsElement.textContent = '';
-            }
         } catch (error) {
             console.error('Erreur lors de la récupération des statistiques:', error);
         }
@@ -182,70 +154,121 @@
         if (stats.commands) document.getElementById('commandsCount').textContent = stats.commands;
         if (stats.uptime) document.getElementById('uptime').textContent = formatUptime(stats.uptime);
         if (stats.ping) document.getElementById('ping').textContent = stats.ping;
-        
-        // Mise à jour de l'activité
-        const activityElement = document.getElementById('activityType');
-        const nameElement = document.getElementById('activityName');
-        const detailsElement = document.getElementById('activityDetails');
-
-        if (stats.activity) {
-            const activityTypes = {
-                'PLAYING': 'Joue à',
-                'STREAMING': 'Stream',
-                'LISTENING': 'Écoute',
-                'WATCHING': 'Regarde',
-                'COMPETING': 'Participe à'
-            };
-
-            activityElement.textContent = activityTypes[stats.activity.type] || stats.activity.type;
-            nameElement.textContent = stats.activity.name || '-';
-            detailsElement.textContent = stats.activity.details || stats.activity.state || '';
-        } else {
-            activityElement.textContent = '-';
-            nameElement.textContent = '-';
-            detailsElement.textContent = '';
-        }
     });
 
-    // Fonction pour envoyer un message
-    async function sendMessage() {
-        const channelId = document.getElementById('channelId').value;
-        const content = document.getElementById('messageContent').value;
+    // Fonction pour mettre à jour l'affichage des fichiers sélectionnés
+    function updateSelectedFiles() {
+        const fileInput = document.getElementById('messageFiles');
+        const selectedFilesDiv = document.getElementById('selectedFiles');
+        selectedFilesDiv.innerHTML = '';
 
-        if (!channelId || !content) {
-            showToast('Veuillez remplir tous les champs', 'error');
+        if (fileInput.files.length > 0) {
+            const totalSize = Array.from(fileInput.files).reduce((acc, file) => acc + file.size, 0);
+            const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+
+            const fileList = document.createElement('div');
+            fileList.className = 'space-y-2';
+            
+            Array.from(fileInput.files).forEach(file => {
+                const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+                const fileItem = document.createElement('div');
+                fileItem.className = 'flex justify-between items-center bg-gray-700 p-2 rounded';
+                fileItem.innerHTML = `
+                    <span class="text-white">${file.name} (${fileSize} MB)</span>
+                    <button type="button" class="text-red-500 hover:text-red-400" onclick="removeFile('${file.name}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                fileList.appendChild(fileItem);
+            });
+
+            const totalSizeElement = document.createElement('div');
+            totalSizeElement.className = 'mt-2 text-gray-400 text-sm';
+            totalSizeElement.textContent = `Taille totale: ${totalSizeMB} MB`;
+
+            selectedFilesDiv.appendChild(fileList);
+            selectedFilesDiv.appendChild(totalSizeElement);
+
+            if (totalSize > 8 * 1024 * 1024) {
+                const errorElement = document.createElement('div');
+                errorElement.className = 'mt-2 text-red-500 text-sm';
+                errorElement.textContent = 'La taille totale des fichiers ne doit pas dépasser 8MB';
+                selectedFilesDiv.appendChild(errorElement);
+            }
+        }
+    }
+
+    // Fonction pour supprimer un fichier
+    function removeFile(fileName) {
+        const fileInput = document.getElementById('messageFiles');
+        const dt = new DataTransfer();
+        
+        Array.from(fileInput.files).forEach(file => {
+            if (file.name !== fileName) {
+                dt.items.add(file);
+            }
+        });
+        
+        fileInput.files = dt.files;
+        updateSelectedFiles();
+    }
+
+    // Ajouter l'événement pour mettre à jour l'affichage des fichiers
+    document.getElementById('messageFiles').addEventListener('change', updateSelectedFiles);
+
+    // Ajouter l'événement pour l'envoi du message
+    document.getElementById('sendMessageBtn').addEventListener('click', async () => {
+        const channelId = document.getElementById('messageChannel').value;
+        const content = document.getElementById('messageContent').value;
+        const files = document.getElementById('messageFiles').files;
+
+        if (!channelId) {
+            showToast('Veuillez sélectionner un salon', 'error');
             return;
         }
+
+        if (!content && files.length === 0) {
+            showToast('Veuillez entrer un message ou sélectionner des fichiers', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('channelId', channelId);
+        if (content) formData.append('content', content);
+        
+        Array.from(files).forEach(file => {
+            formData.append('files', file);
+        });
 
         try {
             const response = await fetch('/api/send-message', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ channelId, content })
+                body: formData
             });
 
-            const result = await response.json();
+            const data = await response.json();
 
-            if (result.success) {
+            if (data.success) {
                 showToast('Message envoyé avec succès', 'success');
                 document.getElementById('messageContent').value = '';
+                document.getElementById('messageFiles').value = '';
+                document.getElementById('selectedFiles').innerHTML = '';
             } else {
-                showToast(result.error || 'Erreur lors de l\'envoi du message', 'error');
+                showToast(data.error || 'Erreur lors de l\'envoi du message', 'error');
             }
         } catch (error) {
             console.error('Erreur:', error);
             showToast('Erreur lors de l\'envoi du message', 'error');
         }
-    }
+    });
 
     function showToast(message, type = 'info') {
         const toast = document.createElement('div');
-        toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg text-white ${type === 'success' ? 'bg-green-600' :
-                type === 'error' ? 'bg-red-600' :
-                    'bg-blue-600'
-            }`;
+        toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg text-white ${
+            type === 'success' ? 'bg-green-600' :
+            type === 'error' ? 'bg-red-600' :
+            'bg-blue-600'
+        }`;
         toast.textContent = message;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
