@@ -282,9 +282,9 @@ client.on('interactionCreate', async (interaction) => {
     } catch (error) {
         console.error("❌ Erreur lors du traitement de l'interaction:", error);
         if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", ephemeral: true });
+            await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", flags : 64 });
         } else {
-            await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", ephemeral: true });
+            await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", flags : 64 });
         }
     }
 });
