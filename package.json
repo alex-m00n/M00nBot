@@ -13,7 +13,8 @@
     "clean": "if exist node_modules rmdir /s /q node_modules",
     "rebuild": "npm run clean && npm run build",
     "dashboard": "node dashboard/server.js",
-    "dashboard:dev": "nodemon dashboard/server.js"
+    "dashboard:dev": "nodemon dashboard/server.js",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dashboard:dev\""
   },
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
@@ -46,6 +47,7 @@
     "ytdl-core-discord": "^1.3.1"
   },
   "devDependencies": {
+    "concurrently": "^9.1.2",
     "nodemon": "^3.1.0"
   },
   "version": "1.0.0",
