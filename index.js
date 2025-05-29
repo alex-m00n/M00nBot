@@ -183,6 +183,9 @@ client.once('ready', async () => {
 
 client.distube = new DisTube(client, {
     emitNewSongOnly: true,
+    leaveOnEmpty: false,
+    leaveOnFinish: false,
+    leaveOnStop: false,
     plugins: [
         new YtDlpPlugin({
             update: true,
@@ -200,7 +203,11 @@ client.distube = new DisTube(client, {
                 addHeader: [
                     'referer:youtube.com',
                     'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                ]
+                ],
+                extractAudio: true,
+                audioFormat: 'mp3',
+                audioQuality: 0,
+                recodeVideo: 'mp4'
             }
         })
     ]
