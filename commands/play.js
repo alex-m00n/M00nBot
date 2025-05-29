@@ -10,37 +10,92 @@ export const data = new SlashCommandBuilder()
     );
 
 export async function execute(interaction) {
-    const client = interaction.client;
-    const distube = client.distube;
-    const query = interaction.options.getString('query');
-    const voiceChannel = interaction.member.voice.channel;
-
-    if (!voiceChannel) {
-        return interaction.reply({ content: '🔊 Tu dois être dans un salon vocal.', flags: 64 });
-    }
-
-    await interaction.deferReply();
-
     try {
-        console.log(`Requête de musique : ${query}`);
+        const client = interaction.client;
+        const distube = client.distube;
+        const query = interaction.options.getString('query');
+        const voiceChannel = interaction.member.voice.channel;
 
-        const queue = distube.getQueue(voiceChannel);
+        if (!voiceChannel) {
+            return interaction.followUp({ content: '🔊 Tu dois être dans un salon vocal.', flags: 64 });
+        }
 
-        if (queue) {
+        try {
+            console.log(`Requête de musique : ${query}`);
+
+            const queue = distube.getQueue(voiceChannel);
+
+            if (queue) {
+                await distube.play(voiceChannel, query, {
+                    member: interaction.member,
+                    textChannel: interaction.channel,
+                    interaction,
+                });
+
+                const playlist = queue.songs.map((song, index) => `${index + 1}. ${song.name} - ${song.formattedDuration}`).join('\n');
+
+                const playlistEmbed = new EmbedBuilder()
+                    .setTitle('🎶 Liste de lecture actuelle')
+                    .setDescription(playlist)
+                    .setColor('#0099ff');
+
+                await interaction.followUp({ content: `🎶 La musique a été ajoutée à la liste de lecture : ${query}`, embeds: [playlistEmbed], flags: 64 });
+
+                const row = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('previous')
+                            .setEmoji('⏮')
+                            .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(!queue || queue.previousSongs.length === 0),
+                        new ButtonBuilder()
+                            .setCustomId('pause')
+                            .setEmoji('⏸')
+                            .setStyle(ButtonStyle.Primary),
+                        new ButtonBuilder()
+                            .setCustomId('resume')
+                            .setEmoji('▶')
+                            .setDisabled(true)
+                            .setStyle(ButtonStyle.Primary),
+                        new ButtonBuilder()
+                            .setCustomId('stop')
+                            .setEmoji('⏹')
+                            .setStyle(ButtonStyle.Danger),
+                        new ButtonBuilder()
+                            .setCustomId('next')
+                            .setEmoji('⏭')
+                            .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(!queue || queue.songs.length <= 1)
+                    );
+
+                await interaction.followUp({ embeds: [playlistEmbed], components: [row] });
+                return;
+            }
+
             await distube.play(voiceChannel, query, {
                 member: interaction.member,
                 textChannel: interaction.channel,
                 interaction,
             });
 
-            const playlist = queue.songs.map((song, index) => `${index + 1}. ${song.name} - ${song.formattedDuration}`).join('\n');
+            const updatedQueue = distube.getQueue(voiceChannel);
+            const currentSong = updatedQueue.songs[0];
 
-            const playlistEmbed = new EmbedBuilder()
-                .setTitle('🎶 Liste de lecture actuelle')
-                .setDescription(playlist)
+            if (!currentSong) {
+                return interaction.followUp({ content: '❌ Impossible de récupérer les informations de la musique.', flags: 64 });
+            }
+
+            const embed = new EmbedBuilder()
+                .setTitle('🎶 Musique en cours de lecture !')
+                .setDescription(`La musique est maintenant en cours de lecture.`)
+                .addFields(
+                    { name: 'Titre', value: currentSong.name || 'Inconnu', inline: true },
+                    { name: 'Durée', value: currentSong.formattedDuration || 'Inconnu', inline: true },
+                    { name: 'Auteur', value: currentSong.uploader?.name || 'Inconnu', inline: true },
+                    { name: 'Lien', value: `[Cliquez ici](${query})`, inline: true }
+                )
+                .setThumbnail(currentSong.thumbnail || '')
                 .setColor('#0099ff');
-
-            await interaction.followUp({ content: `🎶 La musique a été ajoutée à la liste de lecture : ${query}`, embeds: [playlistEmbed], flags: 64 });
 
             const row = new ActionRowBuilder()
                 .addComponents(
@@ -69,85 +124,39 @@ export async function execute(interaction) {
                         .setDisabled(!queue || queue.songs.length <= 1)
                 );
 
-            await interaction.followUp({ embeds: [playlistEmbed], components: [row] });
-            return;
-        }
-
-        await distube.play(voiceChannel, query, {
-            member: interaction.member,
-            textChannel: interaction.channel,
-            interaction,
-        });
-
-        const updatedQueue = distube.getQueue(voiceChannel);
-        const currentSong = updatedQueue.songs[0];
-
-        if (!currentSong) {
-            return interaction.followUp({ content: '❌ Impossible de récupérer les informations de la musique.', flags: 64 });
-        }
-
-        const embed = new EmbedBuilder()
-            .setTitle('🎶 Musique en cours de lecture !')
-            .setDescription(`La musique est maintenant en cours de lecture.`)
-            .addFields(
-                { name: 'Titre', value: currentSong.name || 'Inconnu', inline: true },
-                { name: 'Durée', value: currentSong.formattedDuration || 'Inconnu', inline: true },
-                { name: 'Auteur', value: currentSong.uploader?.name || 'Inconnu', inline: true },
-                { name: 'Lien', value: `[Cliquez ici](${query})`, inline: true }
-            )
-            .setThumbnail(currentSong.thumbnail || '')
-            .setColor('#0099ff');
-
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('previous')
-                    .setEmoji('⏮')
-                    .setStyle(ButtonStyle.Secondary)
-                    .setDisabled(!queue || queue.previousSongs.length === 0),
-                new ButtonBuilder()
-                    .setCustomId('pause')
-                    .setEmoji('⏸')
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId('resume')
-                    .setEmoji('▶')
-                    .setDisabled(true)
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId('stop')
-                    .setEmoji('⏹')
-                    .setStyle(ButtonStyle.Danger),
-                new ButtonBuilder()
-                    .setCustomId('next')
-                    .setEmoji('⏭')
-                    .setStyle(ButtonStyle.Secondary)
-                    .setDisabled(!queue || queue.songs.length <= 1)
-            );
-
-        await interaction.followUp({ embeds: [embed], components: [row] });
-    } catch (error) {
-        console.error('Erreur lors de la lecture de la musique:', error);
-        
-        // Déconnexion du bot en cas d'erreur
-        const voiceChannel = interaction.member.voice.channel;
-        if (voiceChannel) {
-            const member = interaction.guild.members.cache.get(interaction.client.user.id);
-            if (member && member.voice) {
-                await member.voice.disconnect();
+            await interaction.followUp({ embeds: [embed], components: [row] });
+        } catch (error) {
+            console.error('Erreur lors de la lecture de la musique:', error);
+            
+            // Déconnexion du bot en cas d'erreur
+            const voiceChannel = interaction.member.voice.channel;
+            if (voiceChannel) {
+                const member = interaction.guild.members.cache.get(interaction.client.user.id);
+                if (member && member.voice) {
+                    await member.voice.disconnect();
+                }
             }
-        }
 
-        if (error.message.includes('Sign in to confirm you\'re not a bot')) {
-            await interaction.followUp({ content: '❌ Erreur d\'authentification YouTube. Le bot a été déconnecté du canal vocal.', flags: 64 });
-        } else if (error.message.includes('Video unavailable') || error.message.includes('This content isn\'t available')) {
-            await interaction.followUp({ content: '❌ Cette vidéo n\'est pas disponible. Le bot a été déconnecté du canal vocal.', flags: 64 });
-        } else if (error.message.includes('Private video')) {
-            await interaction.followUp({ content: '❌ Cette vidéo est privée et ne peut pas être lue. Le bot a été déconnecté du canal vocal.', flags: 64 });
-        } else if (error.message.includes('Age restricted')) {
-            await interaction.followUp({ content: '❌ Cette vidéo est restreinte par âge et ne peut pas être lue. Le bot a été déconnecté du canal vocal.', flags: 64 });
+            let errorMessage = '❌ Une erreur est survenue en essayant de jouer cette musique.';
+            
+            if (error.message.includes('Sign in to confirm you\'re not a bot')) {
+                errorMessage = '❌ Erreur d\'authentification YouTube.';
+            } else if (error.message.includes('Video unavailable') || error.message.includes('This content isn\'t available')) {
+                errorMessage = '❌ Cette vidéo n\'est pas disponible.';
+            } else if (error.message.includes('Private video')) {
+                errorMessage = '❌ Cette vidéo est privée et ne peut pas être lue.';
+            } else if (error.message.includes('Age restricted')) {
+                errorMessage = '❌ Cette vidéo est restreinte par âge et ne peut pas être lue.';
+            }
+
+            await interaction.followUp({ content: errorMessage, flags: 64 });
+        }
+    } catch (error) {
+        console.error('Erreur dans la commande play:', error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ content: '❌ Une erreur est survenue.', flags: 64 });
         } else {
-            await interaction.followUp({ content: '❌ Une erreur est survenue en essayant de jouer cette musique. Le bot a été déconnecté du canal vocal.', flags: 64 });
+            await interaction.followUp({ content: '❌ Une erreur est survenue.', flags: 64 });
         }
     }
 }

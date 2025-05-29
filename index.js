@@ -253,52 +253,86 @@ client.on('interactionCreate', async (interaction) => {
         if (interaction.isCommand()) {
             const command = interaction.commandName;
             if (commandModules[command]) {
-                await commandModules[command].execute(interaction);
+                try {
+                    await interaction.deferReply();
+                    await commandModules[command].execute(interaction);
+                } catch (error) {
+                    console.error(`Erreur lors de l'exécution de la commande ${command}:`, error);
+                    if (!interaction.replied && !interaction.deferred) {
+                        await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                    } else {
+                        await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                    }
+                }
             }
             console.log('/' + command + ' a été utilisé !');
         }
         else if (interaction.isUserContextMenuCommand()) {
             const command = interaction.commandName;
             if (commandModules[command]) {
-                await commandModules[command].execute(interaction);
+                try {
+                    await interaction.deferReply();
+                    await commandModules[command].execute(interaction);
+                } catch (error) {
+                    console.error(`Erreur lors de l'exécution de la commande contextuelle ${command}:`, error);
+                    if (!interaction.replied && !interaction.deferred) {
+                        await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                    } else {
+                        await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                    }
+                }
             }
             console.log('ContextMenuCommand ' + command + ' a été utilisé !');
         }
         else if (interaction.isButton()) {
-            switch (interaction.customId) {
-                case "verifie":
-                    await handleVerification(interaction);
-                    break;
-                case "createtickets":
-                    await handleTicketCreation(interaction);
-                    break;
-                case "closetickets":
-                    await handleTicketClosure(interaction);
-                    break;
-                case "pause":
-                    await pause(interaction);
-                    break;
-                case "resume":
-                    await resume(interaction);
-                    break;
-                case "stop":
-                    await stop(interaction);
-                    break;
-                case "previous":
-                    await previous(interaction);
-                    break;
-                case "next":
-                    await next(interaction);
-                    break;
+            try {
+                await interaction.deferUpdate();
+                switch (interaction.customId) {
+                    case "verifie":
+                        await handleVerification(interaction);
+                        break;
+                    case "createtickets":
+                        await handleTicketCreation(interaction);
+                        break;
+                    case "closetickets":
+                        await handleTicketClosure(interaction);
+                        break;
+                    case "pause":
+                        await pause(interaction);
+                        break;
+                    case "resume":
+                        await resume(interaction);
+                        break;
+                    case "stop":
+                        await stop(interaction);
+                        break;
+                    case "previous":
+                        await previous(interaction);
+                        break;
+                    case "next":
+                        await next(interaction);
+                        break;
+                }
+                console.log('Bouton ' + interaction.customId + ' a été utilisé !');
+            } catch (error) {
+                console.error(`Erreur lors du traitement du bouton ${interaction.customId}:`, error);
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                } else {
+                    await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                }
             }
-            console.log('Bouton ' + interaction.customId + ' a été utilisé !');
         }
     } catch (error) {
         console.error("❌ Erreur lors du traitement de l'interaction:", error);
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", flags : 64 });
-        } else {
-            await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", flags : 64 });
+        try {
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+            } else {
+                await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+            }
+        } catch (e) {
+            console.error("❌ Impossible de répondre à l'interaction:", e);
         }
     }
 });
