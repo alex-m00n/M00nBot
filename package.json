@@ -14,7 +14,7 @@
     "rebuild": "npm run clean && npm run build",
     "dashboard": "node dashboard/server.js",
     "dashboard:dev": "nodemon dashboard/server.js",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dashboard:dev\""
+    "dev:all": "concurrently \"npm run start\" \"npm run dashboard\""
   },
   "dependencies": {
     "@discordjs/opus": "^0.10.0",

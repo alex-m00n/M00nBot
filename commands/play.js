@@ -11,6 +11,7 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
     try {
+        await interaction.deferReply();
         const client = interaction.client;
         const distube = client.distube;
         const query = interaction.options.getString('query');
@@ -39,7 +40,7 @@ export async function execute(interaction) {
                     .setDescription(playlist)
                     .setColor('#0099ff');
 
-                await interaction.followUp({ content: `🎶 La musique a été ajoutée à la liste de lecture : ${query}`, embeds: [playlistEmbed], flags: 64 });
+                await interaction.editReply({ content: `🎶 La musique a été ajoutée à la liste de lecture : ${query}`, embeds: [playlistEmbed] });
 
                 const row = new ActionRowBuilder()
                     .addComponents(
@@ -68,7 +69,7 @@ export async function execute(interaction) {
                             .setDisabled(!queue || queue.songs.length <= 1)
                     );
 
-                await interaction.followUp({ embeds: [playlistEmbed], components: [row] });
+                await interaction.editReply({ embeds: [playlistEmbed], components: [row] });
                 return;
             }
 
@@ -124,7 +125,7 @@ export async function execute(interaction) {
                         .setDisabled(!queue || queue.songs.length <= 1)
                 );
 
-            await interaction.followUp({ embeds: [embed], components: [row] });
+            await interaction.editReply({ embeds: [embed], components: [row] });
         } catch (error) {
             console.error('Erreur lors de la lecture de la musique:', error);
             

@@ -21,6 +21,7 @@ const client = new Client({
         GatewayIntentBits.GuildModeration,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMessages,
     ],
 });
 
@@ -261,17 +262,20 @@ client.on('interactionCreate', async (interaction) => {
             const command = interaction.commandName;
             if (commandModules[command]) {
                 try {
-                    if (!interaction.replied && !interaction.deferred) {
-                        await interaction.deferReply();
-                    }
                     await commandModules[command].execute(interaction);
                 } catch (error) {
                     console.error(`Erreur lors de l'exécution de la commande ${command}:`, error);
                     try {
                         if (!interaction.replied && !interaction.deferred) {
-                            await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                            await interaction.reply({ 
+                                content: "Une erreur est survenue lors du traitement de votre demande.", 
+                                ephemeral: true 
+                            });
                         } else {
-                            await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                            await interaction.followUp({ 
+                                content: "Une erreur est survenue lors du traitement de votre demande.", 
+                                ephemeral: true 
+                            });
                         }
                     } catch (e) {
                         console.error("Impossible de répondre à l'interaction:", e);
@@ -284,17 +288,20 @@ client.on('interactionCreate', async (interaction) => {
             const command = interaction.commandName;
             if (commandModules[command]) {
                 try {
-                    if (!interaction.replied && !interaction.deferred) {
-                        await interaction.deferReply();
-                    }
                     await commandModules[command].execute(interaction);
                 } catch (error) {
                     console.error(`Erreur lors de l'exécution de la commande contextuelle ${command}:`, error);
                     try {
                         if (!interaction.replied && !interaction.deferred) {
-                            await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                            await interaction.reply({ 
+                                content: "Une erreur est survenue lors du traitement de votre demande.", 
+                                ephemeral: true 
+                            });
                         } else {
-                            await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                            await interaction.followUp({ 
+                                content: "Une erreur est survenue lors du traitement de votre demande.", 
+                                ephemeral: true 
+                            });
                         }
                     } catch (e) {
                         console.error("Impossible de répondre à l'interaction:", e);
@@ -305,9 +312,6 @@ client.on('interactionCreate', async (interaction) => {
         }
         else if (interaction.isButton()) {
             try {
-                if (!interaction.replied && !interaction.deferred) {
-                    await interaction.deferUpdate();
-                }
                 switch (interaction.customId) {
                     case "verifie":
                         await handleVerification(interaction);
@@ -339,9 +343,15 @@ client.on('interactionCreate', async (interaction) => {
                 console.error(`Erreur lors du traitement du bouton ${interaction.customId}:`, error);
                 try {
                     if (!interaction.replied && !interaction.deferred) {
-                        await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                        await interaction.reply({ 
+                            content: "Une erreur est survenue lors du traitement de votre demande.", 
+                            ephemeral: true 
+                        });
                     } else {
-                        await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                        await interaction.followUp({ 
+                            content: "Une erreur est survenue lors du traitement de votre demande.", 
+                            ephemeral: true 
+                        });
                     }
                 } catch (e) {
                     console.error("Impossible de répondre à l'interaction:", e);
@@ -352,9 +362,15 @@ client.on('interactionCreate', async (interaction) => {
         console.error("❌ Erreur lors du traitement de l'interaction:", error);
         try {
             if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                await interaction.reply({ 
+                    content: "Une erreur est survenue lors du traitement de votre demande.", 
+                    ephemeral: true 
+                });
             } else {
-                await interaction.followUp({ content: "Une erreur est survenue lors du traitement de votre demande.", flags: 64 });
+                await interaction.followUp({ 
+                    content: "Une erreur est survenue lors du traitement de votre demande.", 
+                    ephemeral: true 
+                });
             }
         } catch (e) {
             console.error("❌ Impossible de répondre à l'interaction:", e);
@@ -472,54 +488,49 @@ async function updateMemberCounters(guild) {
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    const leaderboardPath = path.join(__dirname, 'data', 'leaderboard.json');
-    let leaderboard;
     try {
-        const data = fs.readFileSync(leaderboardPath, 'utf8');
-        leaderboard = JSON.parse(data);
+        console.log('📝 Nouveau message de', message.author.tag);
+        const leaderboardPath = path.join(__dirname, 'data', 'leaderboard.json');
+        let leaderboard;
+
+        // Charger le leaderboard
+        try {
+            const data = fs.readFileSync(leaderboardPath, 'utf8');
+            leaderboard = JSON.parse(data);
+            console.log('📊 Leaderboard chargé:', leaderboard);
+        } catch (error) {
+            console.log('📊 Création d\'un nouveau leaderboard');
+            leaderboard = { users: {} };
+        }
+
+        // Initialiser les points si nécessaire
+        if (!leaderboard.users[message.author.id]) {
+            console.log('👤 Nouvel utilisateur:', message.author.tag);
+            leaderboard.users[message.author.id] = { points: 0 };
+        }
+
+        // Ajouter 10 points pour chaque message
+        const oldPoints = leaderboard.users[message.author.id].points;
+        leaderboard.users[message.author.id].points += 10;
+        console.log(`🎯 Points ajoutés pour ${message.author.tag}: ${oldPoints} -> ${leaderboard.users[message.author.id].points}`);
+
+        // Sauvegarder les changements
+        try {
+            fs.writeFileSync(leaderboardPath, JSON.stringify(leaderboard, null, 4));
+            console.log('💾 Leaderboard sauvegardé');
+
+            // Mettre à jour les rôles
+            const { updateTopRoles } = await import('./commands/leaderboard.js');
+            if (message.guild) {
+                await updateTopRoles(message.guild, leaderboard);
+                console.log('👑 Rôles mis à jour');
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors de la sauvegarde du leaderboard:', error);
+            return;
+        }
     } catch (error) {
-        leaderboard = { users: {} };
-    }
-
-    if (!leaderboard.users[message.author.id]) {
-        leaderboard.users[message.author.id] = { points: 0 };
-    }
-
-    // Ajouter 1 point pour chaque message
-    leaderboard.users[message.author.id].points += 1;
-    fs.writeFileSync(leaderboardPath, JSON.stringify(leaderboard, null, 4));
-
-    // Mettre à jour les rôles
-    const sortedUsers = Object.entries(leaderboard.users)
-        .sort(([, a], [, b]) => b.points - a.points)
-        .slice(0, 3);
-
-    // Récupérer les rôles existants par ID
-    const firstPlaceRole = message.guild.roles.cache.find(role => role.id === '1348008963890876446');
-    const secondPlaceRole = message.guild.roles.cache.find(role => role.id === '1348009252794404934');
-    const thirdPlaceRole = message.guild.roles.cache.find(role => role.id === '1348009535989612565');
-
-    if (!firstPlaceRole || !secondPlaceRole || !thirdPlaceRole) {
-        console.error('❌ Un ou plusieurs rôles de classement sont manquants');
-        return;
-    }
-
-    // Retirer les rôles de tous les membres
-    for (const role of [firstPlaceRole, secondPlaceRole, thirdPlaceRole]) {
-        for (const member of role.members.values()) {
-            await member.roles.remove(role);
-        }
-    }
-
-    // Attribuer les nouveaux rôles
-    for (let i = 0; i < sortedUsers.length; i++) {
-        const [userId] = sortedUsers[i];
-        const member = await message.guild.members.fetch(userId).catch(() => null);
-        if (member) {
-            if (i === 0) await member.roles.add(firstPlaceRole);
-            else if (i === 1) await member.roles.add(secondPlaceRole);
-            else if (i === 2) await member.roles.add(thirdPlaceRole);
-        }
+        console.error('❌ Erreur lors du traitement des points:', error);
     }
 });
 
