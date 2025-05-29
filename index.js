@@ -186,12 +186,6 @@ client.distube = new DisTube(client, {
     plugins: [
         new YtDlpPlugin({
             update: true,
-            cookies: {
-                youtube: {
-                    browser: 'chrome',
-                    path: './cookies.txt'
-                }
-            },
             ytDlpOptions: {
                 format: 'bestaudio/best',
                 noCheckCertificates: true,
@@ -200,14 +194,30 @@ client.distube = new DisTube(client, {
                 addHeader: [
                     'referer:youtube.com',
                     'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                ],
-                extractAudio: true,
-                audioFormat: 'mp3',
-                audioQuality: 0,
-                recodeVideo: 'mp4'
+                ]
             }
         })
     ]
+});
+
+// Ajout des événements de débogage pour DisTube
+client.distube.on('error', (channel, error) => {
+    console.error('Erreur DisTube:', error);
+    if (channel) {
+        channel.send(`❌ Une erreur est survenue: ${error.message}`);
+    }
+});
+
+client.distube.on('playSong', (queue, song) => {
+    console.log(`Lecture de la chanson: ${song.name}`);
+});
+
+client.distube.on('addSong', (queue, song) => {
+    console.log(`Chanson ajoutée: ${song.name}`);
+});
+
+client.distube.on('disconnect', (queue) => {
+    console.log('Déconnexion du canal vocal');
 });
 
 client.on("guildMemberAdd", async (member) => {
