@@ -183,9 +183,6 @@ client.once('ready', async () => {
 
 client.distube = new DisTube(client, {
     emitNewSongOnly: true,
-    leaveOnEmpty: false,
-    leaveOnFinish: false,
-    leaveOnStop: false,
     plugins: [
         new YtDlpPlugin({
             update: true,
