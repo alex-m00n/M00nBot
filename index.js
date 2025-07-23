@@ -182,7 +182,7 @@ client.once('ready', async () => {
     }, 10000);
 });
 
-const cookiesPath = './secrets/cookies.txt';
+const cookiesPath = '/etc/secrets/cookies.txt';
 let cookies = '';
 if (fs.existsSync(cookiesPath)) {
     cookies = fs.readFileSync(cookiesPath, 'utf8');
