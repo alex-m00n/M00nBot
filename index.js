@@ -182,6 +182,12 @@ client.once('ready', async () => {
     }, 10000);
 });
 
+const cookiesPath = './secrets/cookies.txt';
+let cookies = '';
+if (fs.existsSync(cookiesPath)) {
+    cookies = fs.readFileSync(cookiesPath, 'utf8');
+}
+
 client.distube = new DisTube(client, {
     emitNewSongOnly: true,
     plugins: [
@@ -202,7 +208,8 @@ client.distube = new DisTube(client, {
                 extractAudio: true,
                 audioFormat: 'mp3',
                 audioQuality: 0,
-                recodeVideo: 'mp4'
+                recodeVideo: 'mp4',
+                cookies: cookies, // Ajoutez cette ligne
             }
         })
     ]
